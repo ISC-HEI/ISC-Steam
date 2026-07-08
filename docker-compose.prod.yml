@@ -1,0 +1,34 @@
+# Production stack for the Ubuntu VPS — designed to sit behind the host's nginx.
+# The app only binds to localhost:5174; nginx proxies the domain to it
+# (see deploy/nginx-iscsteam.conf) and certbot handles HTTPS.
+# Usage:
+#   cp deploy/.env.example deploy/.env   # then edit it
+#   docker compose -f docker-compose.prod.yml --env-file deploy/.env up -d --build
+services:
+  app:
+    build: .
+    container_name: isc-steam-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5174:5174"
+    environment:
+      PORT: 5174
+      MONGODB_URI: mongodb://mongo:27017/isc-steam
+      CLIENT_ORIGIN: https://${DOMAIN}
+      JWT_SECRET: ${JWT_SECRET}
+      PUBLISHER_CODE: ${PUBLISHER_CODE}
+    depends_on:
+      - mongo
+    volumes:
+      - maven-cache:/app/server/vendor/maven-cache
+
+  mongo:
+    image: mongo:7
+    container_name: isc-steam-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
+  maven-cache:

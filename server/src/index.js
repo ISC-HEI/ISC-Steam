@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { connectDB, dbReady } from './config/db.js';
 import { requireDB } from './middleware/requireDB.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
@@ -22,6 +25,17 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', requireDB, authRouter);
 app.use('/api/games', requireDB, gamesRouter);
 app.use('/api/admin', requireDB, adminRouter);
+
+// In production, serve the built client (client/dist) from the same origin.
+const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
+if (existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  // SPA fallback: any non-API route returns index.html
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
 
 app.use(notFound);
 app.use(errorHandler);

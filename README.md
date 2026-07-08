@@ -77,8 +77,56 @@ Everything works without MongoDB too — data routes just return 503 until it's 
 │       ├── services/          manifest.js (isc.json) · pipeline.js (clone→compile→package)
 │       ├── config/            db.js · gridfs.js (packages + images)
 │       └── middleware/        auth (JWT + roles), errorHandler, requireDB
+├── desktop/                   Electron thin shell → ISCSteam.exe
+├── deploy/                    Caddyfile + production env template
 ├── docs/ISC_MANIFEST.md       the isc.json specification
-└── docker-compose.yml         local MongoDB
+├── docker-compose.yml         local MongoDB
+├── docker-compose.prod.yml    full production stack (app + Mongo + Caddy)
+└── Dockerfile                 production image (Node + git + JDK + Scala)
+```
+
+## Deploying to a VPS (Ubuntu)
+
+Requires Docker + Docker Compose on the VPS, nginx on the host, and a domain
+with an A record pointing at it.
+
+```bash
+git clone <this repo> && cd ISC-Steam
+cp deploy/.env.example deploy/.env      # set DOMAIN, JWT_SECRET, PUBLISHER_CODE
+docker compose -f docker-compose.prod.yml --env-file deploy/.env up -d --build
+# then hook up nginx + HTTPS (instructions in the file header):
+cat deploy/nginx-iscsteam.conf
+```
+
+The image bundles git, a JDK, Scala 2.13 and the Windows JDK/JavaFX jmods so the
+build pipeline works in the container, and the server serves the built client on
+the same origin. The app binds only to `127.0.0.1:5174`; the host nginx proxies
+the domain to it and certbot provides HTTPS. Update with
+`git pull && docker compose -f docker-compose.prod.yml --env-file deploy/.env up -d --build`.
+
+Note on game packages: on Windows servers the pipeline uses `jpackage` and games
+launch via `Game.exe`; on Linux it cross-builds the same layout with `jlink`
+(Windows Java runtime from Windows jmods) and games launch via `Game.bat` —
+still no Java install needed for players.
+
+## Desktop app (ISCSteam.exe)
+
+`desktop/` is a thin Electron shell that loads the web app from your server —
+no re-release needed when the site changes. Set your server URL once in
+`desktop/package.json` under `iscsteam.url`.
+
+```bash
+cd desktop && npm install
+ISCSTEAM_URL=http://localhost:5173 npm start   # test locally
+npm run dist                                   # build dist/ISCSteam.exe (on Windows)
+```
+
+Releases are automated: pushing a tag like `v1.0.0` triggers
+`.github/workflows/release-desktop.yml`, which builds `ISCSteam.exe` on a
+Windows runner and attaches it to a GitHub Release.
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
 ```
 
 ## API overview
@@ -98,7 +146,7 @@ Everything works without MongoDB too — data routes just return 503 until it's 
 | `npm run dev` | client + server together with hot reload |
 | `npm run dev:client` / `dev:server` | one side only |
 | `npm run build` | production client build to `client/dist` |
-| `npm run start` | run the API (serve `client/dist` behind your reverse proxy, or add `express.static`) |
+| `npm run start` | run the API — also serves `client/dist` if it exists (production) |
 | `npm run db:up` / `db:down` | local MongoDB via Docker |
 
 ## Attribution

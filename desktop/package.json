@@ -1,0 +1,33 @@
+{
+  "name": "isc-steam-desktop",
+  "productName": "ISCSteam",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ISC Steam desktop client — games by ISC students",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "iscsteam": {
+    "url": "https://steamisc.triceratops.ch"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "ch.hevs.isc.steam",
+    "productName": "ISCSteam",
+    "icon": "build/icon.ico",
+    "files": ["main.js", "offline.html", "package.json", "build/icon.ico"],
+    "win": {
+      "target": [
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "portable": {
+      "artifactName": "ISCSteam.exe"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+name: Release ISCSteam.exe
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Build ISCSteam.exe
+        working-directory: desktop
+        run: npx electron-builder --win portable --publish never
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISCSteam
+          path: desktop/dist/ISCSteam.exe
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: desktop/dist/ISCSteam.exe
+          generate_release_notes: true

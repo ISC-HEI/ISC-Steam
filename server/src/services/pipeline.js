@@ -21,6 +21,9 @@ const MAX_BUFFER = 16 * 1024 * 1024;
 const JAVAFX_VERSION = process.env.JAVAFX_VERSION ?? '17.0.13';
 const JAVAFX_CACHE = path.join(VENDOR_DIR, 'javafx-cache');
 const JAVAFX_JMODS = process.env.JAVAFX_JMODS ?? path.join(VENDOR_DIR, 'javafx-jmods');
+// Windows JDK jmods used to cross-build a Windows Java runtime on a Linux server.
+// Must be the SAME version as the local JDK (jlink refuses mismatched java.base).
+const WINDOWS_JDK_JMODS = process.env.WINDOWS_JDK_JMODS ?? path.join(VENDOR_DIR, 'windows-jdk-jmods');
 const MAVEN_CACHE = path.join(VENDOR_DIR, 'maven-cache');
 const MAVEN_REPOSITORY = process.env.MAVEN_REPOSITORY ?? 'https://repo1.maven.org/maven2';
 
@@ -78,10 +81,6 @@ async function buildGame(gameId) {
   const repoDir = path.join(work, 'repo');
 
   try {
-    if (process.platform !== 'win32') {
-      throw new BuildFailure('This build pipeline currently only supports Windows jpackage builds.');
-    }
-
     await log.phase('cloning', `Cloning ${game.repoUrl}${game.branch ? ` (branch ${game.branch})` : ''} …`);
 
     await ensureTool('git', ['--version'], 'git is not installed on the build server');
@@ -305,68 +304,89 @@ async function buildGame(gameId) {
       await writeFile(path.join(appInputDir, runtimeJarNames[i]), await readFile(runtimeJars[i]));
     }
 
-    await log.phase('packaging', 'Generating Windows app-image with jpackage …');
-
-    await ensureTool('jpackage', ['--version'], 'jpackage is not installed on the build server (install a full JDK 17+ or 21+)');
-
     const appName = safeAppName(game.title, game.slug);
-    const outputDir = path.join(work, 'jpackage-output');
+    let appRoot;
+    let launcher;
 
-    const jpackageArgs = [
-      '--type',
-      'app-image',
+    if (process.platform === 'win32') {
+      await log.phase('packaging', 'Generating Windows app-image with jpackage …');
 
-      '--name',
-      appName,
+      await ensureTool('jpackage', ['--version'], 'jpackage is not installed on the build server (install a full JDK 17+ or 21+)');
 
-      '--input',
-      appInputDir,
+      const outputDir = path.join(work, 'jpackage-output');
 
-      '--main-jar',
-      jarName,
+      const jpackageArgs = [
+        '--type',
+        'app-image',
 
-      '--main-class',
-      m.mainClass,
+        '--name',
+        appName,
 
-      '--dest',
-      outputDir,
+        '--input',
+        appInputDir,
 
-      '--vendor',
-      'ISC Steam',
+        '--main-jar',
+        jarName,
 
-      '--copyright',
-      'HES-SO Valais',
+        '--main-class',
+        m.mainClass,
 
-      '--win-console',
-    ];
+        '--dest',
+        outputDir,
 
-    if (m.javafx) {
-      jpackageArgs.push(
-          '--module-path',
-          JAVAFX_JMODS,
+        '--vendor',
+        'ISC Steam',
 
-          '--add-modules',
-          javafxModules.join(',')
-      );
-    }
+        '--copyright',
+        'HES-SO Valais',
 
-    try {
-      await run('jpackage', jpackageArgs, {
-        timeout: PACKAGE_TIMEOUT,
-        maxBuffer: MAX_BUFFER,
-        shell: false,
+        '--win-console',
+      ];
+
+      if (m.javafx) {
+        jpackageArgs.push(
+            '--module-path',
+            JAVAFX_JMODS,
+
+            '--add-modules',
+            javafxModules.join(',')
+        );
+      }
+
+      try {
+        await run('jpackage', jpackageArgs, {
+          timeout: PACKAGE_TIMEOUT,
+          maxBuffer: MAX_BUFFER,
+          shell: false,
+        });
+      } catch (err) {
+        throw new BuildFailure(`jpackage failed:\n${err.stderr || err.stdout || err.message}`);
+      }
+
+      log.add('jpackage app-image OK');
+
+      appRoot = path.join(outputDir, appName);
+      launcher = `${appName}.exe`;
+
+      await stat(appRoot).catch(() => {
+        throw new BuildFailure(`jpackage did not create expected app directory: ${appRoot}`);
       });
-    } catch (err) {
-      throw new BuildFailure(`jpackage failed:\n${err.stderr || err.stdout || err.message}`);
+    } else {
+      // Cross-build (Linux/macOS server): jlink a Windows Java runtime from
+      // Windows JDK jmods and ship a .bat launcher instead of a jpackage .exe.
+      await log.phase('packaging', 'Generating Windows app-image (cross-build: jlink Windows runtime) …');
+
+      appRoot = await crossWindowsAppImage({
+        outputDir: path.join(work, 'app-image-output'),
+        appName,
+        appInputDir,
+        jarName,
+        javafx: m.javafx,
+        javafxModules,
+        log,
+      });
+      launcher = `${appName}.bat`;
     }
-
-    log.add('jpackage app-image OK');
-
-    const appRoot = path.join(outputDir, appName);
-
-    await stat(appRoot).catch(() => {
-      throw new BuildFailure(`jpackage did not create expected app directory: ${appRoot}`);
-    });
 
     await copyResourceEntries(resourceEntries, appRoot, log, 'app root');
     await copyResourceEntries(resourceEntries, path.join(appRoot, 'app'), log, 'app classpath directory');
@@ -381,7 +401,7 @@ async function buildGame(gameId) {
       zip.addFile(`${game.slug}/${relative}`, await readFile(file));
     }
 
-    zip.addFile(`${game.slug}/README.txt`, Buffer.from(readmeTxt(m, game, appName)));
+    zip.addFile(`${game.slug}/README.txt`, Buffer.from(readmeTxt(m, game, launcher)));
 
     const zipBuffer = zip.toBuffer();
 
@@ -418,6 +438,85 @@ async function buildGame(gameId) {
 }
 
 class BuildFailure extends Error {}
+
+// Assembles a jpackage-like Windows app image on a non-Windows server:
+//   <appName>/
+//     <appName>.bat      launcher (console, like jpackage --win-console)
+//     runtime/           Windows Java runtime produced by jlink from Windows jmods
+//     app/               fat jar + dependency jars
+async function crossWindowsAppImage({ outputDir, appName, appInputDir, jarName, javafx, javafxModules, log }) {
+  try {
+    const s = await stat(path.join(WINDOWS_JDK_JMODS, 'java.base.jmod'));
+    if (!s.isFile()) throw new Error('java.base.jmod is not a file');
+  } catch {
+    throw new BuildFailure(
+        `Windows JDK jmods not found in ${WINDOWS_JDK_JMODS}. Cross-building a Windows package on this server requires the jmods/ directory of a Windows x64 JDK of the same version as the local JDK. Download one (e.g. Temurin) and set WINDOWS_JDK_JMODS in server/.env.`
+    );
+  }
+
+  await ensureTool('jlink', ['--version'], 'jlink is not installed on the build server (install a full JDK 17+ or 21+)');
+
+  const appRoot = path.join(outputDir, appName);
+  const runtimeDir = path.join(appRoot, 'runtime');
+  const modulePath = [WINDOWS_JDK_JMODS, ...(javafx ? [JAVAFX_JMODS] : [])].join(path.delimiter);
+  const modules = ['java.se', 'jdk.unsupported', ...(javafx ? javafxModules : [])];
+
+  await mkdir(appRoot, { recursive: true });
+
+  log.add(`jlink: Windows runtime with modules ${modules.join(', ')}`);
+
+  try {
+    await run('jlink', [
+      '--module-path', modulePath,
+      '--add-modules', modules.join(','),
+      '--output', runtimeDir,
+      // not --strip-debug: on Linux it needs objcopy and mangles Windows DLLs
+      '--strip-java-debug-attributes',
+      '--no-header-files',
+      '--no-man-pages',
+    ], {
+      timeout: PACKAGE_TIMEOUT,
+      maxBuffer: MAX_BUFFER,
+      shell: false,
+    });
+  } catch (err) {
+    throw new BuildFailure(`jlink failed:\n${err.stderr || err.stdout || err.message}`);
+  }
+
+  await stat(path.join(runtimeDir, 'bin', 'java.exe')).catch(() => {
+    throw new BuildFailure(
+        'jlink output is not a Windows runtime. WINDOWS_JDK_JMODS must point to the jmods of a *Windows x64* JDK (not the Linux one).'
+    );
+  });
+
+  log.add('jlink Windows runtime OK');
+
+  const appDir = path.join(appRoot, 'app');
+  const inputs = [];
+
+  await collect(appInputDir, () => true, inputs);
+
+  for (const file of inputs) {
+    const dest = path.join(appDir, path.relative(appInputDir, file));
+    await mkdir(path.dirname(dest), { recursive: true });
+    await writeFile(dest, await readFile(file));
+  }
+
+  const addModules = javafx && javafxModules.length ? ` --add-modules ${javafxModules.join(',')}` : '';
+  const bat = [
+    '@echo off',
+    'setlocal',
+    'cd /d "%~dp0"',
+    `"runtime\\bin\\java.exe"${addModules} -jar "app\\${jarName}" %*`,
+    'if errorlevel 1 pause',
+    'endlocal',
+    '',
+  ].join('\r\n');
+
+  await writeFile(path.join(appRoot, `${appName}.bat`), bat);
+
+  return appRoot;
+}
 
 async function ensureTool(cmd, args, message) {
   try {
@@ -1383,7 +1482,7 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-const readmeTxt = (m, game, appName) => `${m.title} v${m.version}
+const readmeTxt = (m, game, launcher) => `${m.title} v${m.version}
 ${'='.repeat(m.title.length + m.version.length + 2)}
 
 ${m.shortDescription}
@@ -1392,7 +1491,7 @@ By: ${m.authors.join(', ') || 'ISC students'}
 ${m.controls ? `Controls: ${m.controls}\n` : ''}
 How to play
 -----------
-Windows: double-click ${appName}.exe
+Windows: double-click ${launcher}
 
 No Java installation is required.
 The package includes its own Java runtime.

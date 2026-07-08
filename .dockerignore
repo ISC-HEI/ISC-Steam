@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+client/dist
+server/.env
+.env
+.git
+.github
+desktop
+docs
+*.md
