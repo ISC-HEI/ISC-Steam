@@ -105,7 +105,12 @@ export default function GameDetail() {
                 <dt>Year</dt><dd>{game.year ?? '—'}</dd>
                 <dt>Size</dt><dd>{formatSize(game.packageSize)}</dd>
                 <dt>Downloads</dt><dd>{game.downloads}</dd>
-                <dt>Source</dt><dd><a href={game.repoUrl} target="_blank" rel="noreferrer">Git repository</a></dd>
+                <dt>Source</dt>
+                <dd>
+                  {game.repoUrl
+                    ? <a href={game.repoUrl} target="_blank" rel="noreferrer">Git repository</a>
+                    : 'Uploaded package'}
+                </dd>
               </dl>
 
               <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>
