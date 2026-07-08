@@ -462,7 +462,8 @@ async function crossWindowsAppImage({ outputDir, appName, appInputDir, jarName, 
       '--module-path', modulePath,
       '--add-modules', modules.join(','),
       '--output', runtimeDir,
-      '--strip-debug',
+      // not --strip-debug: on Linux it needs objcopy and mangles Windows DLLs
+      '--strip-java-debug-attributes',
       '--no-header-files',
       '--no-man-pages',
     ], {
