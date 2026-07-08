@@ -23,19 +23,26 @@ jobs:
         working-directory: desktop
         run: npm install --no-audit --no-fund
 
-      - name: Build ISCSteam.exe
+      - name: Build installer + portable exe
         working-directory: desktop
-        run: npx electron-builder --win portable --publish never
+        run: npx electron-builder --win --publish never
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: ISCSteam
-          path: desktop/dist/ISCSteam.exe
+          path: |
+            desktop/dist/ISCSteam*.exe
+            desktop/dist/latest.yml
+            desktop/dist/*.blockmap
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: desktop/dist/ISCSteam.exe
+          # latest.yml + blockmap are required for auto-update (electron-updater)
+          files: |
+            desktop/dist/ISCSteam*.exe
+            desktop/dist/latest.yml
+            desktop/dist/*.blockmap
           generate_release_notes: true

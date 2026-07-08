@@ -1,7 +1,7 @@
 // ISCSteam desktop client — thin Electron shell around the ISC Steam web app.
 // The app URL comes from package.json ("iscsteam.url"), overridable with the
 // ISCSTEAM_URL environment variable (handy for testing against localhost).
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const path = require('node:path');
 const games = require('./games');
 
@@ -60,6 +60,43 @@ function createWindow() {
 
 app.whenReady().then(() => {
   const win = createWindow();
+
+  // Auto-update from GitHub Releases (installed/NSIS builds only; the portable
+  // exe can't replace itself). Downloads in the background, then shows the
+  // release notes and offers to restart.
+  try {
+    const { autoUpdater } = require('electron-updater');
+
+    autoUpdater.on('update-downloaded', (info) => {
+      // GitHub release notes arrive as an HTML string (or per-file array)
+      const raw = Array.isArray(info.releaseNotes)
+        ? info.releaseNotes.map((n) => n.note ?? '').join('\n')
+        : String(info.releaseNotes ?? '');
+      const notes = raw
+        .replace(/<li>/gi, '• ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      dialog
+        .showMessageBox(win, {
+          type: 'info',
+          title: 'Update available',
+          message: `ISCSteam ${info.version} is ready to install`,
+          detail: notes ? `What's new:\n\n${notes.slice(0, 2000)}` : 'Restart to apply the update.',
+          buttons: ['Restart & update', 'Later'],
+          defaultId: 0,
+          cancelId: 1,
+        })
+        .then(({ response }) => {
+          if (response === 0) autoUpdater.quitAndInstall();
+        });
+    });
+
+    autoUpdater.checkForUpdates().catch(() => {});
+  } catch {
+    /* updater unavailable in dev */
+  }
   // offline.html calls location.reload via a retry link back to the app URL
   win.webContents.on('did-finish-load', () => {
     win.webContents.executeJavaScript(`window.__ISCSTEAM_URL = ${JSON.stringify(APP_URL)};`).catch(() => {});
