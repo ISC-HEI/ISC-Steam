@@ -1,8 +1,11 @@
 # The `isc.json` manifest
 
-Every game submitted to ISC Steam must have an **`isc.json`** file at the root of its
-Git repository. The platform clones the repo, reads this file, compiles the game and
+Every game submitted to ISC Steam should have an **`isc.json`** file at the root of its
+Git repository. The platform clones the repo, reads this file when present, compiles the game and
 packages it — no manual uploads needed.
+
+
+If `isc.json` is missing, ISC Steam falls back to minimal metadata from `README*` and simple Scala source detection.
 
 ## Minimal example
 
@@ -55,7 +58,7 @@ packages it — no manual uploads needed.
 | `screenshots` | no | `[]` | Repo-relative paths, max 6. |
 | `engine.name` | no | `fungraphics` | Engine identifier. |
 | `engine.version` | no | detected | FunGraphics version. If the repo contains `fungraphics-*.jar` it is detected automatically. |
-| `scalaVersion` | no | `2.13` | Scala major version used to compile. |
+| `scalaVersion` | no | `2.13` | Scala version used to compile. The builder selects a matching `scalac` installation. |
 | `javafx` | no | `false` | Set to `true` if the game uses JavaFX. The build merges the JavaFX jars (all platforms) into the package. |
 | `javafxModules` | no | `["controls", "media"]` | JavaFX modules to bundle: `controls`, `media`, `swing`, `fxml`, `web` (`base` and `graphics` are always included). |
 | `sources` | no | `["src"]` | Directories containing `.scala` sources. |
@@ -70,10 +73,19 @@ then produces a runnable fat jar wrapped in a zip with `run.bat` / `run.sh` laun
 
 For the build to succeed your repo must:
 
-1. contain `isc.json` at the root,
+1. preferably contain `isc.json` at the root,
 2. compile with plain `scalac` (no sbt plugins, no IDE-only setup),
-3. include its `fungraphics-*.jar` at the repo root **or** rely on the version vendored on the server,
+3. include its engine/dependency jars (`fungraphics-*.jar`, `gdx2d-*.jar`, etc.) at the repo root or under `libs/`, rely on the version vendored on the server, or declare Maven dependencies in `build.sbt`/README with sbt syntax,
 4. load resources from the classpath or from paths relative to the source root (as FunGraphics examples do).
+
+For repos without `isc.json`, the fallback looks for:
+
+- title and description in the first README heading/paragraphs,
+- authors or controls with simple lines like `Authors: Alice, Bob` or `Controls: arrows`,
+- the entry point in Scala sources via `object Main extends App` or `def main`.
+
+Scala version fallback order: `build.sbt`, `.scala-version`, README text, dependency
+jar names such as `ujson_2.13-...jar` or `scala-library-2.13.14.jar`, then `2.13`.
 
 If a build fails, the full compiler log is visible on your publisher dashboard.
 

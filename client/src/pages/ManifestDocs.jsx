@@ -29,6 +29,7 @@ const FIELDS = [
   ['cover', 'no', 'Repo-relative path to the store banner (~2:1 ratio).'],
   ['screenshots', 'no', 'Repo-relative image paths, max 6.'],
   ['engine.version', 'no', 'FunGraphics version; auto-detected from fungraphics-*.jar in your repo.'],
+  ['scalaVersion', 'no', 'Scala version used to compile; defaults to 2.13.'],
   ['javafx', 'no', 'true if the game uses JavaFX — the build bundles the JavaFX jars for every OS.'],
   ['javafxModules', 'no', 'JavaFX modules to bundle (default ["controls", "media"]); base and graphics are always included.'],
   ['sources', 'no', 'Directories with .scala sources — defaults to ["src"].'],
@@ -44,8 +45,8 @@ export default function ManifestDocs() {
         <p className="eyebrow">For publishers</p>
         <h1 className="section-title" style={{ fontSize: 'var(--text-xl)' }}>The isc.json manifest</h1>
         <p style={{ maxWidth: '46rem' }}>
-          Put an <code>isc.json</code> file at the root of your Git repository. When you submit the repo,
-          the platform clones it, reads this manifest, compiles your game with <code>scalac</code> against
+          Put an <code>isc.json</code> file at the root of your Git repository for full metadata. When you submit the repo,
+          the platform clones it, reads this manifest when present, compiles your game with <code>scalac</code> against
           FunGraphics, and packages a runnable download — cover art and screenshots included.
         </p>
 

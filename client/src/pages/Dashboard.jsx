@@ -75,7 +75,7 @@ export default function Dashboard() {
           <input
             className="input"
             style={{ flex: 1, minWidth: '18rem', maxWidth: 'none' }}
-            placeholder="https://github.com/you/your-game (with isc.json at the root)"
+            placeholder="https://github.com/you/your-game"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
             required
@@ -90,8 +90,8 @@ export default function Dashboard() {
           <button className="btn btn-primary" disabled={busy}>{busy ? 'Submitting…' : 'Submit game'}</button>
         </form>
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--isc-muted)' }}>
-          The server clones your repo, reads <code>isc.json</code>, compiles your Scala sources against
-          FunGraphics and packages a runnable download. <Link to="/docs/manifest">Manifest reference →</Link>
+          The server clones your repo, reads <code>isc.json</code> when present, falls back to README/source
+          detection when needed, compiles your Scala sources against FunGraphics and packages a runnable download. <Link to="/docs/manifest">Manifest reference</Link>
         </p>
 
         {error && <p className="form-error">{error}</p>}

@@ -4,3 +4,5 @@ dist/
 .env.local
 *.log
 .DS_Store
+server/vendor/maven-cache/
+server/vendor/javafx-cache/
