@@ -1,3 +1,6 @@
+# Unused when the host already runs nginx (see nginx-iscsteam.conf).
+# Kept for setups where Caddy handles HTTPS itself — add this service back
+# to docker-compose.prod.yml to use it.
 {$DOMAIN} {
 	encode gzip
 	reverse_proxy app:5174

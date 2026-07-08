@@ -87,19 +87,21 @@ Everything works without MongoDB too — data routes just return 503 until it's 
 
 ## Deploying to a VPS (Ubuntu)
 
-Requires Docker + Docker Compose on the VPS, and a domain with an A record
-pointing at it (Caddy gets the HTTPS certificate automatically).
+Requires Docker + Docker Compose on the VPS, nginx on the host, and a domain
+with an A record pointing at it.
 
 ```bash
 git clone <this repo> && cd ISC-Steam
 cp deploy/.env.example deploy/.env      # set DOMAIN, JWT_SECRET, PUBLISHER_CODE
 docker compose -f docker-compose.prod.yml --env-file deploy/.env up -d --build
+# then hook up nginx + HTTPS (instructions in the file header):
+cat deploy/nginx-iscsteam.conf
 ```
 
-That's the whole deployment: the image bundles git, a JDK, Scala 2.13 and the
-Windows JDK/JavaFX jmods so the build pipeline works in the container, the server
-serves the built client on the same origin, and Caddy terminates HTTPS on ports
-80/443. Update with
+The image bundles git, a JDK, Scala 2.13 and the Windows JDK/JavaFX jmods so the
+build pipeline works in the container, and the server serves the built client on
+the same origin. The app binds only to `127.0.0.1:5174`; the host nginx proxies
+the domain to it and certbot provides HTTPS. Update with
 `git pull && docker compose -f docker-compose.prod.yml --env-file deploy/.env up -d --build`.
 
 Note on game packages: on Windows servers the pipeline uses `jpackage` and games
