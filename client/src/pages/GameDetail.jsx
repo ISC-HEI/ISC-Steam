@@ -3,6 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import { api, downloadUrl } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { TagRow } from '../components/GameCard.jsx';
+import Reviews from '../components/Reviews.jsx';
+
+const isDesktop = typeof window !== 'undefined' && !!window.iscSteam?.desktop;
 
 function formatSize(bytes) {
   if (!bytes) return '—';
@@ -15,6 +18,19 @@ export default function GameDetail() {
   const [game, setGame] = useState(null);
   const [error, setError] = useState('');
   const [shot, setShot] = useState(0);
+  const [inLibrary, setInLibrary] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    api.get('/library')
+      .then((d) => setInLibrary(d.entries.some((e) => e.game.slug === slug)))
+      .catch(() => {});
+  }, [slug, user]);
+
+  async function addToLibrary() {
+    await api.post(`/library/${slug}`);
+    setInLibrary(true);
+  }
 
   useEffect(() => {
     api.get(`/games/${slug}`).then(setGame).catch((err) => setError(err.message));
@@ -77,6 +93,8 @@ export default function GameDetail() {
                 <p className="mono">{game.controls}</p>
               </>
             )}
+
+            <Reviews slug={slug} />
           </div>
 
           <aside className="buybox">
@@ -88,13 +106,21 @@ export default function GameDetail() {
               <div className="download-row">
                 <span className="price-free">Free</span>
                 {user ? (
-                  game.downloadable ? (
-                    <a className="btn btn-primary" href={downloadUrl(game.slug)}>Download</a>
+                  inLibrary ? (
+                    <Link className="btn btn-secondary" to="/library">In library ✓</Link>
                   ) : (
-                    <span className="status-pill status-none">no build yet</span>
+                    <button type="button" className="btn btn-primary" onClick={addToLibrary}>
+                      Add to library
+                    </button>
                   )
                 ) : (
-                  <Link className="btn btn-primary" to="/login">Sign in to download</Link>
+                  <Link className="btn btn-primary" to="/login">Sign in to play</Link>
+                )}
+                {user && !isDesktop && game.downloadable && (
+                  <a className="btn btn-secondary" href={downloadUrl(game.slug)}>Download</a>
+                )}
+                {user && !game.downloadable && (
+                  <span className="status-pill status-none">no build yet</span>
                 )}
               </div>
 

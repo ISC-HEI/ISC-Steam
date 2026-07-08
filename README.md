@@ -109,11 +109,26 @@ launch via `Game.exe`; on Linux it cross-builds the same layout with `jlink`
 (Windows Java runtime from Windows jmods) and games launch via `Game.bat` —
 still no Java install needed for players.
 
+## Social features
+
+Friends, chat and presence live in the bottom-right dock (socket.io — the nginx
+config proxies `/socket.io/` with WebSocket upgrades). Users add friends by
+username, chat 1-to-1, and see who's online or in game. Reviews (1–5 stars +
+text) appear on every game page. "Add to library" puts games on `/library`,
+which tracks hours played.
+
 ## Desktop app (ISCSteam.exe)
 
 `desktop/` is a thin Electron shell that loads the web app from your server —
 no re-release needed when the site changes. Set your server URL once in
 `desktop/package.json` under `iscsteam.url`.
+
+Unlike the web version, the desktop app is a real launcher: the Library page
+lets users pick an install folder, install games (download + unzip), launch
+them, and it reports playtime and "Playing …" presence to friends. For Discord
+Rich Presence, create an application at discord.com/developers and put its
+Application ID in `desktop/package.json` → `iscsteam.discordClientId`
+(optionally upload an art asset named `iscsteam`).
 
 ```bash
 cd desktop && npm install

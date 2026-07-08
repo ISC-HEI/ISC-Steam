@@ -5,6 +5,7 @@ import {
   inspectRepo, createGame, listMine, rebuildGame, updateGame, deleteGame,
 } from '../controllers/gameController.js';
 import { optionalAuth, requireAuth, requireRole } from '../middleware/auth.js';
+import { listReviews, upsertReview, deleteReview } from '../controllers/reviewController.js';
 
 const router = Router();
 const upload = multer({
@@ -29,6 +30,11 @@ router.get('/:slug/media/:mediaId', getMedia);
 
 // downloads require an account (any role)
 router.get('/:slug/download', requireAuth, downloadGame);
+
+// reviews
+router.get('/:slug/reviews', optionalAuth, listReviews);
+router.post('/:slug/reviews', requireAuth, upsertReview);
+router.delete('/:slug/reviews', requireAuth, deleteReview);
 
 // publishing (students & admins)
 router.post('/inspect-repo', requireAuth, requireRole('student'), inspectRepo);

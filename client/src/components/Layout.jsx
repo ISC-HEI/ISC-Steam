@@ -3,6 +3,7 @@ import logoBlack from '../assets/logo/isc-inline-black.svg';
 import logoWhite from '../assets/logo/isc-inline-white.svg';
 import useTheme from '../hooks/useTheme.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import SocialDock from './SocialDock.jsx';
 
 const APP_NAME = 'Steam';
 
@@ -45,6 +46,7 @@ export default function Layout() {
           </Link>
           <nav className="nav" aria-label="Main">
             <NavLink to="/" end>Store</NavLink>
+            {user && <NavLink to="/library">Library</NavLink>}
             {isStudent && <NavLink to="/dashboard">My games</NavLink>}
             {isAdmin && <NavLink to="/admin">Admin</NavLink>}
             {user ? (
@@ -85,6 +87,8 @@ export default function Layout() {
           </span>
         </div>
       </footer>
+
+      <SocialDock />
     </>
   );
 }

@@ -10,11 +10,14 @@ import './styles/theme.css';
 import './styles/base.css';
 import './styles/app.css';
 import './styles/store.css';
+import './styles/social.css';
 
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { SocialProvider } from './context/SocialContext.jsx';
 import Layout from './components/Layout.jsx';
 import Store from './pages/Store.jsx';
 import GameDetail from './pages/GameDetail.jsx';
+import Library from './pages/Library.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -32,11 +35,20 @@ function RequireRole({ check, children }) {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
+      <SocialProvider>
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Store />} />
             <Route path="game/:slug" element={<GameDetail />} />
+            <Route
+              path="library"
+              element={
+                <RequireRole check={(a) => !!a.user}>
+                  <Library />
+                </RequireRole>
+              }
+            />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="docs/manifest" element={<ManifestDocs />} />
@@ -61,6 +73,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           </Route>
         </Routes>
       </BrowserRouter>
+      </SocialProvider>
     </AuthProvider>
   </React.StrictMode>,
 );

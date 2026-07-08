@@ -1,10 +1,19 @@
 // ISCSteam desktop client — thin Electron shell around the ISC Steam web app.
 // The app URL comes from package.json ("iscsteam.url"), overridable with the
 // ISCSTEAM_URL environment variable (handy for testing against localhost).
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('node:path');
+const games = require('./games');
 
 const APP_URL = process.env.ISCSTEAM_URL || require('./package.json').iscsteam.url;
+
+// ---- launcher IPC (used by the web app via preload.js) ----
+ipcMain.handle('isc:getInstallDir', () => games.getInstallDir());
+ipcMain.handle('isc:chooseInstallDir', (e) => games.chooseInstallDir(BrowserWindow.fromWebContents(e.sender)));
+ipcMain.handle('isc:installed', () => games.listInstalled());
+ipcMain.handle('isc:install', (e, game, token) => games.install(APP_URL, game, token));
+ipcMain.handle('isc:uninstall', (e, slug) => games.uninstall(slug));
+ipcMain.handle('isc:play', (e, slug) => games.play(APP_URL, slug));
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -18,6 +27,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
