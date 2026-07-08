@@ -17,8 +17,11 @@ const gameSchema = new mongoose.Schema(
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 
     // Source
-    repoUrl: { type: String, required: true, trim: true },
+    sourceType: { type: String, enum: ['repo', 'executable'], default: 'repo' },
+    repoUrl: { type: String, trim: true, default: '' },
     branch: { type: String, trim: true, default: '' }, // '' = repo default branch
+    metadataLocked: { type: Boolean, default: false },
+    mediaLocked: { type: Boolean, default: false },
 
     // Metadata mirrored from isc.json on each successful import
     title: { type: String, required: true, trim: true, maxlength: 80 },
@@ -48,6 +51,8 @@ const gameSchema = new mongoose.Schema(
     builtAt: { type: Date },
     commit: { type: String, default: '' },
     packageFileId: { type: mongoose.Schema.Types.ObjectId }, // GridFS zip
+    packageFilename: { type: String, trim: true, default: '' },
+    packageContentType: { type: String, trim: true, default: 'application/zip' },
     packageSize: { type: Number, default: 0 },
   },
   { timestamps: true },
@@ -71,6 +76,7 @@ gameSchema.methods.toStore = function toStore() {
     controls: this.controls,
     year: this.year,
     engine: this.engine,
+    sourceType: this.sourceType,
     repoUrl: this.repoUrl,
     published: this.published,
     featured: this.featured,

@@ -1,11 +1,24 @@
 import { Router } from 'express';
+import multer from 'multer';
 import {
   listGames, listTags, getGame, getMedia, downloadGame,
-  createGame, listMine, rebuildGame, updateGame, deleteGame,
+  inspectRepo, createGame, listMine, rebuildGame, updateGame, deleteGame,
 } from '../controllers/gameController.js';
 import { optionalAuth, requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 200 * 1024 * 1024,
+    files: 8,
+  },
+});
+const gameUpload = upload.fields([
+  { name: 'package', maxCount: 1 },
+  { name: 'cover', maxCount: 1 },
+  { name: 'screenshots', maxCount: 6 },
+]);
 
 // store (public)
 router.get('/', listGames);
@@ -18,9 +31,10 @@ router.get('/:slug/media/:mediaId', getMedia);
 router.get('/:slug/download', requireAuth, downloadGame);
 
 // publishing (students & admins)
-router.post('/', requireAuth, requireRole('student'), createGame);
+router.post('/inspect-repo', requireAuth, requireRole('student'), inspectRepo);
+router.post('/', requireAuth, requireRole('student'), gameUpload, createGame);
 router.post('/:slug/rebuild', requireAuth, requireRole('student'), rebuildGame);
-router.patch('/:slug', requireAuth, requireRole('student'), updateGame);
+router.patch('/:slug', requireAuth, requireRole('student'), gameUpload, updateGame);
 router.delete('/:slug', requireAuth, requireRole('student'), deleteGame);
 
 export default router;

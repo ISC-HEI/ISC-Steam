@@ -114,24 +114,30 @@ async function buildGame(gameId) {
     log.add(`${m.inferred ? 'No isc.json found; inferred metadata' : 'Manifest OK'}: "${m.title}" v${m.version} (main: ${m.mainClass}, Scala ${m.scalaVersion} from ${m.scalaVersionSource || 'default'})`);
 
     Object.assign(game, {
-      title: m.title,
-      shortDescription: m.shortDescription,
-      description: m.description,
-      version: m.version,
-      authors: m.authors,
-      tags: m.tags,
-      controls: m.controls,
-      year: m.year,
-      engine: m.engine,
       mainClass: m.mainClass,
+      engine: game.metadataLocked ? game.engine : m.engine,
+      ...(game.metadataLocked ? {} : {
+        title: m.title,
+        shortDescription: m.shortDescription,
+        description: m.description,
+        version: m.version,
+        authors: m.authors,
+        tags: m.tags,
+        controls: m.controls,
+        year: m.year,
+      }),
     });
 
-    const oldMedia = game.media;
-    game.media = [];
+    if (!game.mediaLocked) {
+      const oldMedia = game.media;
+      game.media = [];
 
-    if (m.cover) await importImage(game, repoDir, m.cover, 'cover', log);
-    for (const shot of m.screenshots) await importImage(game, repoDir, shot, 'screenshot', log);
-    for (const old of oldMedia) await deleteFile(old.fileId);
+      if (m.cover) await importImage(game, repoDir, m.cover, 'cover', log);
+      for (const shot of m.screenshots) await importImage(game, repoDir, shot, 'screenshot', log);
+      for (const old of oldMedia) await deleteFile(old.fileId);
+    } else {
+      log.add('Keeping dashboard-managed media.');
+    }
 
     await game.save();
 
@@ -383,10 +389,12 @@ async function buildGame(gameId) {
 
     game.packageFileId = await uploadFromBuffer(
         zipBuffer,
-        `${game.slug}-${m.version}-windows.zip`,
+        `${game.slug}-${game.version}-windows.zip`,
         'application/zip'
     );
 
+    game.packageFilename = `${game.slug}-${game.version}-windows.zip`;
+    game.packageContentType = 'application/zip';
     game.packageSize = zipBuffer.length;
 
     if (oldPackage) await deleteFile(oldPackage);
