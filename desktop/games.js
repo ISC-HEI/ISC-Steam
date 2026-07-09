@@ -176,7 +176,10 @@ async function play(appUrl, slug) {
     // Use ComSpec (absolute path to cmd.exe) rather than the bare name: if the
     // process PATH doesn't include System32, spawn('cmd.exe') fails with ENOENT.
     const comspec = process.env.ComSpec || 'C:\\Windows\\System32\\cmd.exe';
-    child = spawn(comspec, ['/d', '/s', '/c', `"${launcherPath}"`], {
+    // Double the quotes around the path: `cmd /c` strips one outer pair of
+    // quotes, so a single pair leaves the path unquoted and it breaks at the
+    // first space (e.g. "Fallen Guardian.bat"). Doubling keeps a valid pair.
+    child = spawn(comspec, ['/d', '/s', '/c', `""${launcherPath}""`], {
       cwd: dir,
       windowsHide: false,
       windowsVerbatimArguments: true,
