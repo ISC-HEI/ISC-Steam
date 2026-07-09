@@ -8,6 +8,7 @@ const games = require('./games');
 const APP_URL = process.env.ISCSTEAM_URL || require('./package.json').iscsteam.url;
 
 // ---- launcher IPC (used by the web app via preload.js) ----
+ipcMain.on('isc:version', (e) => { e.returnValue = app.getVersion(); });
 ipcMain.handle('isc:getInstallDir', () => games.getInstallDir());
 ipcMain.handle('isc:chooseInstallDir', (e) => games.chooseInstallDir(BrowserWindow.fromWebContents(e.sender)));
 ipcMain.handle('isc:installed', () => games.listInstalled());

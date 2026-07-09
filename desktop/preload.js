@@ -4,8 +4,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('iscSteam', {
   desktop: true,
-  // npm_package_version is empty in packaged builds; read package.json instead
-  version: require('./package.json').version,
+  // sandboxed preloads can't require local files; the main process answers synchronously
+  version: ipcRenderer.sendSync('isc:version'),
 
   getInstallDir: () => ipcRenderer.invoke('isc:getInstallDir'),
   chooseInstallDir: () => ipcRenderer.invoke('isc:chooseInstallDir'),
