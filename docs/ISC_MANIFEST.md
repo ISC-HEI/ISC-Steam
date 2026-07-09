@@ -28,7 +28,7 @@ If `isc.json` is missing, ISC Steam falls back to minimal metadata from `README*
   "shortDescription": "A Scala port of Helltaker - grid puzzles, quirky demons, original music.",
   "description": "ISCtaker challenges players to navigate puzzle-like levels filled with moving obstacles, locked doors, and quirky demons. Push skeletons, collect keys, and reach your demon companion.\n\nMade for the ISC 1st-year course at HES-SO Valais.",
   "version": "1.0.0",
-  "authors": ["Louis Marello", "Sebastian Morsch"],
+  "authors": ["Louis Schanen", "Sebastian Morsch"],
   "tags": ["puzzle", "2d", "keyboard"],
   "cover": "src/res/Banner.png",
   "screenshots": ["src/res/screenshot1.png", "src/res/screenshot level4.png"],
