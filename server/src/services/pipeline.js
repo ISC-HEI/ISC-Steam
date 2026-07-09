@@ -24,6 +24,10 @@ const JAVAFX_JMODS = process.env.JAVAFX_JMODS ?? path.join(VENDOR_DIR, 'javafx-j
 // Windows JDK jmods used to cross-build a Windows Java runtime on a Linux server.
 // Must be the SAME version as the local JDK (jlink refuses mismatched java.base).
 const WINDOWS_JDK_JMODS = process.env.WINDOWS_JDK_JMODS ?? path.join(VENDOR_DIR, 'windows-jdk-jmods');
+// Local (Linux) JDK jmods + Linux JavaFX jmods for the Linux game package.
+const LINUX_JDK_JMODS = process.env.LINUX_JDK_JMODS
+    ?? (process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, 'jmods') : '');
+const JAVAFX_JMODS_LINUX = process.env.JAVAFX_JMODS_LINUX ?? path.join(VENDOR_DIR, 'javafx-jmods-linux');
 const MAVEN_CACHE = path.join(VENDOR_DIR, 'maven-cache');
 const MAVEN_REPOSITORY = process.env.MAVEN_REPOSITORY ?? 'https://repo1.maven.org/maven2';
 
@@ -419,9 +423,40 @@ async function buildGame(gameId) {
 
     if (oldPackage) await deleteFile(oldPackage);
 
+    // Linux package (only when building on a Linux server, where the local
+    // JDK jmods produce a native Linux runtime)
+    if (process.platform === 'linux') {
+      try {
+        await log.phase('packaging', 'Generating Linux package (jlink Linux runtime) ...');
+        const linuxZipBuffer = await linuxPackageZip({
+          work,
+          game,
+          m,
+          appInputDir,
+          jarName,
+          javafxModules,
+          resourceEntries,
+          log,
+        });
+        const oldLinux = game.linuxPackageFileId;
+        game.linuxPackageFileId = await uploadFromBuffer(
+            linuxZipBuffer,
+            `${game.slug}-${game.version}-linux.zip`,
+            'application/zip'
+        );
+        game.linuxPackageFilename = `${game.slug}-${game.version}-linux.zip`;
+        game.linuxPackageSize = linuxZipBuffer.length;
+        if (oldLinux) await deleteFile(oldLinux);
+        log.add(`Linux package OK (${(linuxZipBuffer.length / 1024 / 1024).toFixed(1)} MB)`);
+      } catch (err) {
+        // Linux variant is best-effort: the Windows package already succeeded
+        log.add(`Warning: Linux package failed - ${err.message}`);
+      }
+    }
+
     game.builtAt = new Date();
 
-    await log.phase('success', `Done — Windows package ${(zipBuffer.length / 1024 / 1024).toFixed(1)} MB`);
+    await log.phase('success', `Done - Windows package ${(zipBuffer.length / 1024 / 1024).toFixed(1)} MB${game.linuxPackageFileId ? ' + Linux package' : ''}`);
   } catch (err) {
     const msg =
         err instanceof ManifestError || err instanceof BuildFailure
@@ -516,6 +551,88 @@ async function crossWindowsAppImage({ outputDir, appName, appInputDir, jarName, 
   await writeFile(path.join(appRoot, `${appName}.bat`), bat);
 
   return appRoot;
+}
+
+// Builds the Linux variant: jlink runtime from the local (Linux) JDK jmods,
+// a run.sh launcher, and the same app jars. Returns the zip as a Buffer with
+// unix executable bits set so unzip produces a runnable folder.
+async function linuxPackageZip({ work, game, m, appInputDir, jarName, javafxModules, resourceEntries, log }) {
+  if (!LINUX_JDK_JMODS) throw new Error('LINUX_JDK_JMODS / JAVA_HOME not set');
+  await stat(path.join(LINUX_JDK_JMODS, 'java.base.jmod')).catch(() => {
+    throw new Error(`Linux JDK jmods not found in ${LINUX_JDK_JMODS}`);
+  });
+
+  const javafx = !!m.javafx;
+  if (javafx) {
+    await stat(path.join(JAVAFX_JMODS_LINUX, 'javafx.base.jmod')).catch(() => {
+      throw new Error(`Linux JavaFX jmods not found in ${JAVAFX_JMODS_LINUX} (set JAVAFX_JMODS_LINUX)`);
+    });
+  }
+
+  const appRoot = path.join(work, 'linux-app-image', game.slug);
+  const runtimeDir = path.join(appRoot, 'runtime');
+  const modulePath = [LINUX_JDK_JMODS, ...(javafx ? [JAVAFX_JMODS_LINUX] : [])].join(path.delimiter);
+  const modules = ['java.se', 'jdk.unsupported', ...(javafx ? javafxModules : [])];
+
+  await mkdir(appRoot, { recursive: true });
+  await run('jlink', [
+    '--module-path', modulePath,
+    '--add-modules', modules.join(','),
+    '--output', runtimeDir,
+    '--strip-java-debug-attributes',
+    '--no-header-files',
+    '--no-man-pages',
+  ], { timeout: PACKAGE_TIMEOUT, maxBuffer: MAX_BUFFER, shell: false });
+
+  // app jars
+  const appDir = path.join(appRoot, 'app');
+  const inputs = [];
+  await collect(appInputDir, () => true, inputs);
+  for (const file of inputs) {
+    const dest = path.join(appDir, path.relative(appInputDir, file));
+    await mkdir(path.dirname(dest), { recursive: true });
+    await writeFile(dest, await readFile(file));
+  }
+
+  // resources next to the jar, same as the Windows layout
+  await copyResourceEntries(resourceEntries, appRoot, log, 'linux app root');
+  await copyResourceEntries(resourceEntries, appDir, log, 'linux app classpath directory');
+
+  const addModules = javafx && javafxModules.length ? ` --add-modules ${javafxModules.join(',')}` : '';
+  const runSh = [
+    '#!/bin/sh',
+    'cd "$(dirname "$0")"',
+    `exec ./runtime/bin/java${addModules} -jar "app/${jarName}" "$@"`,
+    '',
+  ].join('\n');
+  await writeFile(path.join(appRoot, 'run.sh'), runSh);
+
+  const zip = new AdmZip();
+  const files = [];
+  await collect(appRoot, () => true, files);
+
+  const EXEC_ATTR = ((0o100755 << 16) >>> 0);
+  const isExecutable = (rel) =>
+      rel === 'run.sh'
+      || rel.startsWith('runtime/bin/')
+      || rel === 'runtime/lib/jspawnhelper'
+      || rel === 'runtime/lib/jexec';
+
+  for (const file of files) {
+    const relative = path.relative(appRoot, file).replaceAll('\\', '/');
+    const entryName = `${game.slug}/${relative}`;
+    if (isExecutable(relative)) {
+      zip.addFile(entryName, await readFile(file), '', EXEC_ATTR);
+    } else {
+      zip.addFile(entryName, await readFile(file));
+    }
+  }
+  zip.addFile(
+      `${game.slug}/README.txt`,
+      Buffer.from(readmeTxt(m, game, 'run.sh (Linux: sh run.sh, or chmod +x run.sh first)')),
+  );
+
+  return zip.toBuffer();
 }
 
 async function ensureTool(cmd, args, message) {
@@ -713,7 +830,7 @@ async function findDependencyJars(repoDir, engineName, log) {
   }
 
   if (!jars.length) {
-    log.add(`Warning: no dependency jar found for ${engineName || 'the game'} (repo or server/vendor) — compiling without engine`);
+    log.add(`Warning: no dependency jar found for ${engineName || 'the game'} (repo or server/vendor) - compiling without engine`);
   }
 
   return jars;
@@ -1106,7 +1223,7 @@ async function findEngineJar(repoDir, log) {
     return vendored[0];
   }
 
-  log.add('Warning: no FunGraphics jar found (repo root or server/vendor) — compiling without engine');
+  log.add('Warning: no FunGraphics jar found (repo root or server/vendor) - compiling without engine');
   return null;
 }
 
@@ -1132,7 +1249,7 @@ async function findScalaLibrary(log) {
 
     return lib;
   } catch {
-    log.add('Warning: scala-library.jar not found — set SCALA_LIBRARY_JAR in server/.env. The game may not run standalone.');
+    log.add('Warning: scala-library.jar not found - set SCALA_LIBRARY_JAR in server/.env. The game may not run standalone.');
     return null;
   }
 }
@@ -1249,7 +1366,7 @@ async function findScalaLibraryForToolchain(scala, log) {
 
     return lib;
   } catch {
-    log.add(`Warning: scala-library.jar for Scala ${scala.requestedVersion} not found — set SCALA_LIBRARY_JAR_${envKey} in server/.env. The game may not run standalone.`);
+    log.add(`Warning: scala-library.jar for Scala ${scala.requestedVersion} not found - set SCALA_LIBRARY_JAR_${envKey} in server/.env. The game may not run standalone.`);
     return null;
   }
 }
@@ -1419,7 +1536,7 @@ async function importImage(game, repoDir, rel, kind, log) {
   try {
     await stat(abs);
   } catch {
-    log.add(`Warning: ${kind} image not found: ${rel} — skipped`);
+    log.add(`Warning: ${kind} image not found: ${rel} - skipped`);
     return;
   }
 
@@ -1434,7 +1551,7 @@ async function importImage(game, repoDir, rel, kind, log) {
   }[ext];
 
   if (!contentType) {
-    log.add(`Warning: unsupported ${kind} format "${ext}" — skipped`);
+    log.add(`Warning: unsupported ${kind} format "${ext}" - skipped`);
     return;
   }
 

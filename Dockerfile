@@ -1,4 +1,4 @@
-# ISC Steam — production image (API + built client + Scala/Java build toolchain)
+# ISC Steam - production image (API + built client + Scala/Java build toolchain)
 
 # ---- Stage 1: build the React client ----
 FROM node:20-bookworm-slim AS client-build
@@ -24,14 +24,14 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends git curl ca-certificates unzip \
   && rm -rf /var/lib/apt/lists/*
 
-# Linux JDK (Temurin) — runs scalac, jlink, and the API's build pipeline
+# Linux JDK (Temurin) - runs scalac, jlink, and the API's build pipeline
 RUN JDK_ENC=$(echo "${JDK_VERSION}" | sed 's/+/%2B/') \
   && curl -fsSL "https://api.adoptium.net/v3/binary/version/jdk-${JDK_ENC}/linux/x64/jdk/hotspot/normal/eclipse" -o /tmp/jdk.tar.gz \
   && mkdir -p /opt/jdk \
   && tar -xzf /tmp/jdk.tar.gz -C /opt/jdk --strip-components=1 \
   && rm /tmp/jdk.tar.gz
 
-# Windows JDK jmods (same version) — used by jlink to cross-build the Windows
+# Windows JDK jmods (same version) - used by jlink to cross-build the Windows
 # Java runtime bundled with each game package
 RUN JDK_ENC=$(echo "${JDK_VERSION}" | sed 's/+/%2B/') \
   && curl -fsSL "https://api.adoptium.net/v3/binary/version/jdk-${JDK_ENC}/windows/x64/jdk/hotspot/normal/eclipse" -o /tmp/winjdk.zip \
@@ -40,11 +40,17 @@ RUN JDK_ENC=$(echo "${JDK_VERSION}" | sed 's/+/%2B/') \
   && mv /tmp/winjdk/*/jmods /opt/windows-jdk/jmods \
   && rm -rf /tmp/winjdk /tmp/winjdk.zip
 
-# JavaFX Windows jmods — for games with "javafx": true in isc.json
+# JavaFX Windows jmods - for games with "javafx": true in isc.json
 RUN curl -fsSL "https://download2.gluonhq.com/openjfx/${JAVAFX_VERSION}/openjfx-${JAVAFX_VERSION}_windows-x64_bin-jmods.zip" -o /tmp/jfx.zip \
   && unzip -q /tmp/jfx.zip -d /tmp/jfx \
   && mv "/tmp/jfx/javafx-jmods-${JAVAFX_VERSION}" /opt/javafx-jmods \
   && rm -rf /tmp/jfx /tmp/jfx.zip
+
+# JavaFX Linux jmods - for the Linux game package variant
+RUN curl -fsSL "https://download2.gluonhq.com/openjfx/${JAVAFX_VERSION}/openjfx-${JAVAFX_VERSION}_linux-x64_bin-jmods.zip" -o /tmp/jfxl.zip \
+  && unzip -q /tmp/jfxl.zip -d /tmp/jfxl \
+  && mv "/tmp/jfxl/javafx-jmods-${JAVAFX_VERSION}" /opt/javafx-jmods-linux \
+  && rm -rf /tmp/jfxl /tmp/jfxl.zip
 
 # Scala (compiles student games)
 RUN curl -fsSL "https://github.com/scala/scala/releases/download/v${SCALA_VERSION}/scala-${SCALA_VERSION}.tgz" \
@@ -55,7 +61,9 @@ ENV JAVA_HOME=/opt/jdk \
     PATH="/opt/jdk/bin:/opt/scala/bin:${PATH}" \
     SCALA_LIBRARY_JAR=/opt/scala/lib/scala-library.jar \
     WINDOWS_JDK_JMODS=/opt/windows-jdk/jmods \
+    LINUX_JDK_JMODS=/opt/jdk/jmods \
     JAVAFX_JMODS=/opt/javafx-jmods \
+    JAVAFX_JMODS_LINUX=/opt/javafx-jmods-linux \
     JAVAFX_VERSION=${JAVAFX_VERSION}
 
 WORKDIR /app

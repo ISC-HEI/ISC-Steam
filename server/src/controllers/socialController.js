@@ -11,7 +11,7 @@ function userCard(user) {
   };
 }
 
-/** GET /api/social/friends — friends with live status + pending requests + unread counts. */
+/** GET /api/social/friends - friends with live status + pending requests + unread counts. */
 export async function listFriends(req, res) {
   const me = req.user._id;
 
@@ -45,7 +45,7 @@ export async function listFriends(req, res) {
   res.json({ friends, incoming, outgoing, unread });
 }
 
-/** POST /api/social/friends { username } — send a request (auto-accepts if they already asked). */
+/** POST /api/social/friends { username } - send a request (auto-accepts if they already asked). */
 export async function addFriend(req, res) {
   const username = String(req.body.username ?? '').trim().toLowerCase();
   if (!username) return res.status(400).json({ error: 'Username required' });
@@ -80,7 +80,7 @@ export async function acceptFriend(req, res) {
   res.json({ ok: true });
 }
 
-/** DELETE /api/social/friends/:friendshipId — decline, cancel, or unfriend. */
+/** DELETE /api/social/friends/:friendshipId - decline, cancel, or unfriend. */
 export async function removeFriend(req, res) {
   const f = await Friendship.findById(req.params.friendshipId);
   if (!f || (!f.requester.equals(req.user._id) && !f.recipient.equals(req.user._id))) {
@@ -97,7 +97,7 @@ async function assertFriends(me, otherId) {
   return f?.status === 'accepted';
 }
 
-/** GET /api/social/messages/:userId — last 50 messages with that friend, oldest first. */
+/** GET /api/social/messages/:userId - last 50 messages with that friend, oldest first. */
 export async function listMessages(req, res) {
   const other = req.params.userId;
   if (!(await assertFriends(req.user._id, other))) {
@@ -132,7 +132,7 @@ export async function sendMessage(req, res) {
   res.status(201).json({ message: payload });
 }
 
-/** POST /api/social/messages/:userId/read — mark everything from them as read. */
+/** POST /api/social/messages/:userId/read - mark everything from them as read. */
 export async function markRead(req, res) {
   await Message.updateMany(
     { from: req.params.userId, to: req.user._id, readAt: null },

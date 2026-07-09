@@ -36,7 +36,7 @@ export async function deleteUser(req, res, next) {
   }
 }
 
-// GET /api/admin/games — every game, any status (moderation queue)
+// GET /api/admin/games - every game, any status (moderation queue)
 export async function listAllGames(req, res, next) {
   try {
     const games = await Game.find().sort({ updatedAt: -1 }).populate('owner', 'username displayName');
@@ -52,7 +52,7 @@ export async function listAllGames(req, res, next) {
   }
 }
 
-// GET /api/admin/stats — topbar numbers for the admin page
+// GET /api/admin/stats - topbar numbers for the admin page
 export async function stats(req, res, next) {
   try {
     const [users, games, published, downloads] = await Promise.all([

@@ -1,7 +1,7 @@
 const EXAMPLE = `{
   "iscVersion": 1,
   "title": "ISCtaker",
-  "shortDescription": "A Scala port of Helltaker — grid puzzles, quirky demons, original music.",
+  "shortDescription": "A Scala port of Helltaker - grid puzzles, quirky demons, original music.",
   "description": "Longer store-page text…",
   "version": "1.0.0",
   "authors": ["Louis Marello", "Sebastian Morsch"],
@@ -18,7 +18,7 @@ const EXAMPLE = `{
 }`;
 
 const FIELDS = [
-  ['iscVersion', 'yes', 'Manifest format version — currently 1.'],
+  ['iscVersion', 'yes', 'Manifest format version - currently 1.'],
   ['title', 'yes', 'Display name in the store (max 80 chars).'],
   ['shortDescription', 'yes', 'One-liner shown on store cards (max 200 chars).'],
   ['mainClass', 'yes', 'Fully-qualified entry object, e.g. "Main" or "game.Main".'],
@@ -30,9 +30,9 @@ const FIELDS = [
   ['screenshots', 'no', 'Repo-relative image paths, max 6.'],
   ['engine.version', 'no', 'FunGraphics version; auto-detected from fungraphics-*.jar in your repo.'],
   ['scalaVersion', 'no', 'Scala version used to compile; defaults to 2.13.'],
-  ['javafx', 'no', 'true if the game uses JavaFX — the build bundles the JavaFX jars for every OS.'],
+  ['javafx', 'no', 'true if the game uses JavaFX - the build bundles the JavaFX jars for every OS.'],
   ['javafxModules', 'no', 'JavaFX modules to bundle (default ["controls", "media"]); base and graphics are always included.'],
-  ['sources', 'no', 'Directories with .scala sources — defaults to ["src"].'],
+  ['sources', 'no', 'Directories with .scala sources - defaults to ["src"].'],
   ['resources', 'no', 'Directories bundled into the jar (sprites, audio, levels); defaults to sources.'],
   ['controls', 'no', 'Short keyboard-controls line shown on the store page.'],
   ['year', 'no', 'Cohort year.'],
@@ -47,7 +47,7 @@ export default function ManifestDocs() {
         <p style={{ maxWidth: '46rem' }}>
           Put an <code>isc.json</code> file at the root of your Git repository for full metadata. When you submit the repo,
           the platform clones it, reads this manifest when present, compiles your game with <code>scalac</code> against
-          FunGraphics, and packages a runnable download — cover art and screenshots included.
+          FunGraphics, and packages a runnable download - cover art and screenshots included.
         </p>
 
         <h2>Example</h2>
@@ -81,7 +81,7 @@ export default function ManifestDocs() {
         <p style={{ maxWidth: '46rem' }}>
           Set <code>"javafx": true</code> and the build bundles the JavaFX jars for every OS into your
           package. Important: your <code>mainClass</code> must <strong>not</strong> extend{' '}
-          <code>javafx.application.Application</code> — use a plain wrapper object that calls{' '}
+          <code>javafx.application.Application</code> - use a plain wrapper object that calls{' '}
           <code>Application.launch(classOf[MyGameApp], args: _*)</code> and point <code>mainClass</code> at it.
         </p>
       </div>

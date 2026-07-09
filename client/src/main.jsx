@@ -11,6 +11,7 @@ import './styles/base.css';
 import './styles/app.css';
 import './styles/store.css';
 import './styles/social.css';
+import './styles/profile.css';
 
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { SocialProvider } from './context/SocialContext.jsx';
@@ -18,6 +19,7 @@ import Layout from './components/Layout.jsx';
 import Store from './pages/Store.jsx';
 import GameDetail from './pages/GameDetail.jsx';
 import Library from './pages/Library.jsx';
+import Profile from './pages/Profile.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -41,6 +43,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route element={<Layout />}>
             <Route index element={<Store />} />
             <Route path="game/:slug" element={<GameDetail />} />
+            <Route path="user/:username" element={<Profile />} />
             <Route
               path="library"
               element={

@@ -37,7 +37,7 @@ export async function listReviews(req, res) {
   });
 }
 
-/** POST /api/games/:slug/reviews { rating, text } — creates or updates the caller's review. */
+/** POST /api/games/:slug/reviews { rating, text } - creates or updates the caller's review. */
 export async function upsertReview(req, res) {
   const game = await findGame(req.params.slug);
   if (!game || !game.published) return res.status(404).json({ error: 'Game not found' });
@@ -57,7 +57,7 @@ export async function upsertReview(req, res) {
   res.status(201).json({ ok: true, id: review._id.toString() });
 }
 
-/** DELETE /api/games/:slug/reviews — deletes the caller's review (admins can pass ?user=id). */
+/** DELETE /api/games/:slug/reviews - deletes the caller's review (admins can pass ?user=id). */
 export async function deleteReview(req, res) {
   const game = await findGame(req.params.slug);
   if (!game) return res.status(404).json({ error: 'Game not found' });

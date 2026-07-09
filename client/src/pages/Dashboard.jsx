@@ -344,7 +344,7 @@ export default function Dashboard() {
 
         {error && <p className="form-error">{error}</p>}
         {!games && <p>Loading…</p>}
-        {games?.length === 0 && <p>No games yet — submit your game above.</p>}
+        {games?.length === 0 && <p>No games yet - submit your game above.</p>}
 
         {games?.length > 0 && (
           <table className="table">

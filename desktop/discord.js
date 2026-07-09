@@ -1,4 +1,4 @@
-// Discord Rich Presence — fail-soft: if Discord isn't running or no client ID
+// Discord Rich Presence - fail-soft: if Discord isn't running or no client ID
 // is configured, everything silently no-ops.
 let RPC = null;
 try {
@@ -22,7 +22,7 @@ function connect() {
     if (pending) void client.setActivity(pending).catch(() => {});
   });
   client.login({ clientId: CLIENT_ID }).catch(() => {
-    client = null; // Discord not running — try again on next game launch
+    client = null; // Discord not running - try again on next game launch
   });
 }
 

@@ -1,4 +1,4 @@
-# Production stack for the Ubuntu VPS — designed to sit behind the host's nginx.
+# Production stack for the Ubuntu VPS - designed to sit behind the host's nginx.
 # The app only binds to localhost:5174; nginx proxies the domain to it
 # (see deploy/nginx-iscsteam.conf) and certbot handles HTTPS.
 # Usage:

@@ -30,7 +30,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ISCSteam
+          name: ISCSteam-windows
           path: |
             desktop/dist/ISCSteam*.exe
             desktop/dist/latest.yml
@@ -45,4 +45,39 @@ jobs:
             desktop/dist/ISCSteam*.exe
             desktop/dist/latest.yml
             desktop/dist/*.blockmap
+          generate_release_notes: true
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Build AppImage
+        working-directory: desktop
+        run: npx electron-builder --linux --publish never
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ISCSteam-linux
+          path: |
+            desktop/dist/ISCSteam*.AppImage
+            desktop/dist/latest-linux.yml
+
+      - name: Add Linux build to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          # latest-linux.yml enables auto-update for AppImage installs
+          files: |
+            desktop/dist/ISCSteam*.AppImage
+            desktop/dist/latest-linux.yml
           generate_release_notes: true

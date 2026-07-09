@@ -53,7 +53,7 @@ export default function Store() {
             <p className="eyebrow">ISC · HES-SO Valais</p>
             <h1>Games made by ISC students</h1>
             <p>
-              Every game here was built with FunGraphics during the 1st-year course — pulled straight
+              Every game here was built with FunGraphics during the 1st-year course - pulled straight
               from the students' Git repos, compiled and packaged so you can play them anywhere.
             </p>
           </div>
@@ -92,7 +92,7 @@ export default function Store() {
 
           {error && <p className="notice">{error}</p>}
           {!games && !error && <p>Loading the library…</p>}
-          {games?.length === 0 && <p>No games match — try clearing the filters.</p>}
+          {games?.length === 0 && <p>No games match - try clearing the filters.</p>}
 
           <div className="capsule-grid">
             {games?.map((g) => <GameCard key={g.slug} game={g} />)}

@@ -1,4 +1,4 @@
-// ISCSteam desktop client — thin Electron shell around the ISC Steam web app.
+// ISCSteam desktop client - thin Electron shell around the ISC Steam web app.
 // The app URL comes from package.json ("iscsteam.url"), overridable with the
 // ISCSTEAM_URL environment variable (handy for testing against localhost).
 const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');

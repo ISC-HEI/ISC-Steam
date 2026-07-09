@@ -1,9 +1,9 @@
 {
   "name": "isc-steam-desktop",
   "productName": "ISCSteam",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "ISC Steam desktop client — games by ISC students",
+  "description": "ISC Steam desktop client - games by ISC students",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -26,12 +26,20 @@
     "appId": "ch.hevs.isc.steam",
     "productName": "ISCSteam",
     "icon": "build/icon.ico",
-    "files": ["main.js", "preload.js", "games.js", "discord.js", "offline.html", "package.json", "build/icon.ico"],
+    "files": ["main.js", "preload.js", "games.js", "discord.js", "offline.html", "package.json", "build/icon.ico", "build/icon.png"],
     "win": {
       "target": [
         { "target": "nsis", "arch": ["x64"] },
         { "target": "portable", "arch": ["x64"] }
       ]
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png",
+      "category": "Game",
+      "artifactName": "ISCSteam-${version}.AppImage"
     },
     "nsis": {
       "oneClick": true,

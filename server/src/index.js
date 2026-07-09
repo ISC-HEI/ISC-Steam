@@ -14,6 +14,7 @@ import gamesRouter from './routes/games.js';
 import adminRouter from './routes/admin.js';
 import socialRouter from './routes/social.js';
 import libraryRouter from './routes/library.js';
+import usersRouter from './routes/users.js';
 
 const app = express();
 const port = process.env.PORT ?? 5174;
@@ -31,6 +32,7 @@ app.use('/api/games', requireDB, gamesRouter);
 app.use('/api/admin', requireDB, adminRouter);
 app.use('/api/social', requireDB, socialRouter);
 app.use('/api/library', requireDB, libraryRouter);
+app.use('/api/users', requireDB, usersRouter);
 
 // In production, serve the built client (client/dist) from the same origin.
 const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');

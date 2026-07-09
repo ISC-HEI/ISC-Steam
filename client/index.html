@@ -5,7 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#383838" />
-    <title>ISC Steam — games by ISC students</title>
+    <title>ISC Steam - games by ISC students</title>
     <script>
       // Set the theme before first paint to avoid a light-mode flash.
       // Kept in sync with src/hooks/useTheme.js.
@@ -13,7 +13,7 @@
         try {
           var t = localStorage.getItem('theme');
           if (t !== 'light' && t !== 'dark') {
-            t = 'dark'; // the store defaults to dark — it's a Steam thing
+            t = 'dark'; // the store defaults to dark - it's a Steam thing
           }
           document.documentElement.dataset.theme = t;
         } catch (e) { /* default to light */ }

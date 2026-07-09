@@ -48,7 +48,7 @@ export default function StyleGuide() {
         <h2 style={{ marginTop: 'var(--space-5)' }}>Facet palette</h2>
         <p>
           The five gradient facets of the mountain symbol. Use them for badges, chart series, and card
-          accents — as small touches on white or charcoal, never as full backgrounds.
+          accents - as small touches on white or charcoal, never as full backgrounds.
         </p>
         <div className="swatch-row">
           {FACETS.map((c) => (
@@ -65,10 +65,10 @@ export default function StyleGuide() {
 
         <h2 style={{ marginTop: 'var(--space-5)' }}>Type</h2>
         <p style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 600 }}>
-          Space Grotesk — headings and buttons
+          Space Grotesk - headings and buttons
         </p>
-        <p>Inter — body text, forms, and everything readable.</p>
-        <p className="mono">JetBrains Mono — eyebrows, badges, statuses. A nod to the ANSI logo.</p>
+        <p>Inter - body text, forms, and everything readable.</p>
+        <p className="mono">JetBrains Mono - eyebrows, badges, statuses. A nod to the ANSI logo.</p>
 
         <h2 style={{ marginTop: 'var(--space-5)' }}>Components</h2>
         <p>

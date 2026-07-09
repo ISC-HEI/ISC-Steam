@@ -164,6 +164,14 @@
 .social-feedback, .social-error { padding: 0 var(--space-3); font-size: var(--text-xs); color: var(--isc-muted); }
 .social-error { color: var(--isc-rose); }
 
+/* ---- footer version ---- */
+.footer-version {
+  margin-left: auto;
+  color: var(--isc-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
 /* ---- reviews ---- */
 .reviews-average {
   margin-left: var(--space-2);

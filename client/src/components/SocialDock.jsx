@@ -1,5 +1,6 @@
 // Bottom-right friends & chat dock, Steam-style.
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSocial } from '../context/SocialContext.jsx';
 
@@ -47,7 +48,7 @@ function ChatView({ friend, onBack }) {
         <button type="button" className="social-back" onClick={onBack} aria-label="Back">←</button>
         <StatusDot status={friend.status} />
         <div className="social-chat-title">
-          <strong>{friend.displayName}</strong>
+          <Link to={`/user/${friend.username}`}><strong>{friend.displayName}</strong></Link>
           <span>{statusText(friend.status)}</span>
         </div>
       </div>
@@ -136,7 +137,7 @@ function FriendsView() {
           </>
         )}
 
-        <p className="social-section-label">Friends — {friends.length}</p>
+        <p className="social-section-label">Friends - {friends.length}</p>
         {friends.length === 0 && <p className="social-empty">No friends yet. Add classmates by username!</p>}
         {[...friends]
           .sort((a, b) => (a.status?.state === 'offline') - (b.status?.state === 'offline'))
@@ -158,23 +159,22 @@ function FriendsView() {
 export default function SocialDock() {
   const { user } = useAuth();
   const social = useSocial();
-  const [open, setOpen] = useState(false);
 
   if (!user || !social) return null;
 
-  const { totalUnread, onlineCount, activeChat, setActiveChat, friends } = social;
+  const { totalUnread, onlineCount, activeChat, setActiveChat, friends, dockOpen, setDockOpen } = social;
   const chatFriend = activeChat ? friends.find((f) => f.id === activeChat) : null;
 
   return (
     <div className="social-dock">
-      {open && (
+      {dockOpen && (
         <div className="social-panel">
           {chatFriend
             ? <ChatView friend={chatFriend} onBack={() => setActiveChat(null)} />
             : <FriendsView />}
         </div>
       )}
-      <button type="button" className="social-toggle" onClick={() => setOpen((o) => !o)}>
+      <button type="button" className="social-toggle" onClick={() => setDockOpen(!dockOpen)}>
         <span className={`presence-dot ${social.playing ? 'ingame' : 'online'}`} />
         Friends ({onlineCount} online)
         {totalUnread > 0 && <span className="unread-badge">{totalUnread}</span>}

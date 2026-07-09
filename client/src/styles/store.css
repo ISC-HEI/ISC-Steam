@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ISC Steam — store components.
+   ISC Steam - store components.
    Steam-inspired layout (featured capsule, cover grid, buy-box) rendered
    entirely with the ISC design tokens from theme.css.
    ========================================================================== */
@@ -208,7 +208,7 @@
 
 .game-description { white-space: pre-line; }
 
-/* The "buy box" — Steam's purchase panel, repurposed for free downloads */
+/* The "buy box" - Steam's purchase panel, repurposed for free downloads */
 
 .buybox {
   position: sticky;

@@ -2,7 +2,7 @@
 
 Every game submitted to ISC Steam should have an **`isc.json`** file at the root of its
 Git repository. The platform clones the repo, reads this file when present, compiles the game and
-packages it — no manual uploads needed.
+packages it - no manual uploads needed.
 
 
 If `isc.json` is missing, ISC Steam falls back to minimal metadata from `README*` and simple Scala source detection.
@@ -13,7 +13,7 @@ If `isc.json` is missing, ISC Steam falls back to minimal metadata from `README*
 {
   "iscVersion": 1,
   "title": "ISCtaker",
-  "shortDescription": "A Scala port of Helltaker — push, dodge and puzzle your way to your demon companion.",
+  "shortDescription": "A Scala port of Helltaker - push, dodge and puzzle your way to your demon companion.",
   "mainClass": "Main",
   "cover": "src/res/Banner.png"
 }
@@ -25,7 +25,7 @@ If `isc.json` is missing, ISC Steam falls back to minimal metadata from `README*
 {
   "iscVersion": 1,
   "title": "ISCtaker",
-  "shortDescription": "A Scala port of Helltaker — grid puzzles, quirky demons, original music.",
+  "shortDescription": "A Scala port of Helltaker - grid puzzles, quirky demons, original music.",
   "description": "ISCtaker challenges players to navigate puzzle-like levels filled with moving obstacles, locked doors, and quirky demons. Push skeletons, collect keys, and reach your demon companion.\n\nMade for the ISC 1st-year course at HES-SO Valais.",
   "version": "1.0.0",
   "authors": ["Louis Marello", "Sebastian Morsch"],
@@ -46,15 +46,15 @@ If `isc.json` is missing, ISC Steam falls back to minimal metadata from `README*
 
 | Field | Required | Default | Meaning |
 | --- | --- | --- | --- |
-| `iscVersion` | yes | — | Manifest format version. Currently `1`. |
-| `title` | yes | — | Display name in the store (max 80 chars). |
-| `shortDescription` | yes | — | One-liner shown on store cards (max 200 chars). |
-| `mainClass` | yes | — | Fully-qualified entry object (the one with `main` / `App`). |
+| `iscVersion` | yes | - | Manifest format version. Currently `1`. |
+| `title` | yes | - | Display name in the store (max 80 chars). |
+| `shortDescription` | yes | - | One-liner shown on store cards (max 200 chars). |
+| `mainClass` | yes | - | Fully-qualified entry object (the one with `main` / `App`). |
 | `description` | no | shortDescription | Long store-page text. Plain text, `\n\n` for paragraphs. |
 | `version` | no | `1.0.0` | Game version; shown on the store page and in the package name. |
 | `authors` | no | `[]` | Display names of the team. |
 | `tags` | no | `[]` | Lowercase genre/feature tags (max 8) used for store filtering. |
-| `cover` | no | — | Repo-relative path to the store banner (PNG/JPG, ~2:1 ratio ideal). |
+| `cover` | no | - | Repo-relative path to the store banner (PNG/JPG, ~2:1 ratio ideal). |
 | `screenshots` | no | `[]` | Repo-relative paths, max 6. |
 | `engine.name` | no | `fungraphics` | Engine identifier. |
 | `engine.version` | no | detected | FunGraphics version. If the repo contains `fungraphics-*.jar` it is detected automatically. |
@@ -63,7 +63,7 @@ If `isc.json` is missing, ISC Steam falls back to minimal metadata from `README*
 | `javafxModules` | no | `["controls", "media"]` | JavaFX modules to bundle: `controls`, `media`, `swing`, `fxml`, `web` (`base` and `graphics` are always included). |
 | `sources` | no | `["src"]` | Directories containing `.scala` sources. |
 | `resources` | no | sources | Directories whose non-source files are bundled into the jar (sprites, audio, levels). Paths are kept **relative to the source root**, so `src/res/x.png` is loaded in-game as `/res/x.png`. |
-| `controls` | no | — | Short line describing keyboard controls, shown on the store page. |
+| `controls` | no | - | Short line describing keyboard controls, shown on the store page. |
 | `year` | no | current | Cohort/class year. |
 
 ## Build requirements
@@ -91,7 +91,7 @@ If a build fails, the full compiler log is visible on your publisher dashboard.
 
 ## Using JavaFX
 
-Since Java 11, JavaFX is not bundled with Java — a plain `java -jar` fails with
+Since Java 11, JavaFX is not bundled with Java - a plain `java -jar` fails with
 *"JavaFX runtime components are missing"*. If your game uses JavaFX, set `"javafx": true`
 and the platform bundles the JavaFX jars for Windows, macOS (Intel + Apple Silicon) and Linux
 into your package.

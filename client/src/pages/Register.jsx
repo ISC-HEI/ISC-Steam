@@ -54,7 +54,7 @@ export default function Register() {
 
           <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 'var(--space-2)' }}>
             <input type="checkbox" checked={isStudent} onChange={(e) => setIsStudent(e.target.checked)} />
-            <span>I'm an ISC student — I want to publish games</span>
+            <span>I'm an ISC student - I want to publish games</span>
           </label>
           {isStudent && (
             <label className="field">

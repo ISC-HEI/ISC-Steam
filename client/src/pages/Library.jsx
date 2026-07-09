@@ -107,7 +107,7 @@ export default function Library() {
         {error && <p className="social-error">{error}</p>}
 
         {entries.length === 0 && (
-          <p>Your library is empty — find something in the <Link to="/">store</Link>.</p>
+          <p>Your library is empty - find something in the <Link to="/">store</Link>.</p>
         )}
 
         <div className="library-grid">
@@ -158,7 +158,12 @@ export default function Library() {
                         </button>
                       )
                     ) : (
-                      game.downloadable && <a className="btn btn-primary" href={downloadUrl(game.slug)}>Download</a>
+                      <>
+                        {game.downloadable && <a className="btn btn-primary" href={downloadUrl(game.slug)}>Windows</a>}
+                        {game.downloadableLinux && (
+                          <a className="btn btn-secondary" href={downloadUrl(game.slug, 'linux')}>Linux</a>
+                        )}
+                      </>
                     )}
                     <button type="button" className="btn btn-ghost" onClick={() => removeFromLibrary(game.slug)}>
                       Remove

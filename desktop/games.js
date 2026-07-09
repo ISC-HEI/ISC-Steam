@@ -82,14 +82,17 @@ async function listInstalled() {
   return out;
 }
 
-/** Finds the launcher at the top of the game folder: AppName.exe or AppName.bat. */
+/** Finds the launcher at the top of the game folder, per platform. */
 async function findLauncher(dir) {
   const entries = await fsp.readdir(dir);
-  return (
-    entries.find((f) => f.toLowerCase().endsWith('.exe')) ??
-    entries.find((f) => f.toLowerCase().endsWith('.bat')) ??
-    null
-  );
+  if (process.platform === 'win32') {
+    return (
+      entries.find((f) => f.toLowerCase().endsWith('.exe')) ??
+      entries.find((f) => f.toLowerCase().endsWith('.bat')) ??
+      null
+    );
+  }
+  return entries.find((f) => f.toLowerCase().endsWith('.sh')) ?? null;
 }
 
 async function install(appUrl, game, token) {
@@ -98,7 +101,8 @@ async function install(appUrl, game, token) {
   if (!SLUG_RE.test(game.slug)) throw new Error('Invalid game id');
   if (running.has(game.slug)) throw new Error('Close the game before updating it');
 
-  const url = `${appUrl.replace(/\/$/, '')}/api/games/${game.slug}/download?token=${encodeURIComponent(token)}`;
+  const platform = process.platform === 'linux' ? '&platform=linux' : '';
+  const url = `${appUrl.replace(/\/$/, '')}/api/games/${game.slug}/download?token=${encodeURIComponent(token)}${platform}`;
   const res = await fetch(url);
   if (!res.ok) {
     let msg = `Download failed (HTTP ${res.status})`;
@@ -117,7 +121,8 @@ async function install(appUrl, game, token) {
 
   try {
     // The package zips everything under a top-level "<slug>/" folder.
-    new AdmZip(tmp).extractAllTo(root, true);
+    // Third arg keeps unix permissions (executable bits) on Linux.
+    new AdmZip(tmp).extractAllTo(root, true, true);
   } finally {
     await fsp.rm(tmp, { force: true }).catch(() => {});
   }
@@ -156,9 +161,20 @@ async function play(appUrl, slug) {
 
   const dir = gameDir(slug);
   const launcherPath = path.join(dir, meta.launcher);
-  const child = meta.launcher.toLowerCase().endsWith('.bat')
-    ? spawn('cmd.exe', ['/c', launcherPath], { cwd: dir, windowsHide: false })
-    : spawn(launcherPath, [], { cwd: dir, windowsHide: false });
+  const lower = meta.launcher.toLowerCase();
+
+  let child;
+  if (lower.endsWith('.sh')) {
+    // ensure executable bits survive whatever unzipped the package
+    await fsp.chmod(launcherPath, 0o755).catch(() => {});
+    await fsp.chmod(path.join(dir, 'runtime', 'bin', 'java'), 0o755).catch(() => {});
+    await fsp.chmod(path.join(dir, 'runtime', 'lib', 'jspawnhelper'), 0o755).catch(() => {});
+    child = spawn('/bin/sh', [launcherPath], { cwd: dir });
+  } else if (lower.endsWith('.bat')) {
+    child = spawn('cmd.exe', ['/c', launcherPath], { cwd: dir, windowsHide: false });
+  } else {
+    child = spawn(launcherPath, [], { cwd: dir, windowsHide: false });
+  }
 
   const session = { child, startedAt: Date.now(), title: meta.title ?? slug };
   running.set(slug, session);

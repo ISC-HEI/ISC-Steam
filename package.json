@@ -1,6 +1,6 @@
 {
   "name": "isc-app-template",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Shared MERN template (Vite + React + Express + MongoDB) in the ISC visual identity",
   "workspaces": [

@@ -30,7 +30,7 @@ export async function readManifest(repoDir, fallbackSlug = 'isc-game') {
   try {
     m = JSON.parse(raw);
   } catch (err) {
-    fail(`invalid JSON — ${err.message}`);
+    fail(`invalid JSON - ${err.message}`);
   }
 
   if (m.iscVersion !== 1) fail('"iscVersion" must be 1');

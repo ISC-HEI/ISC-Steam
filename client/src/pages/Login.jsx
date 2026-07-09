@@ -43,7 +43,7 @@ export default function Login() {
           </label>
           <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
           <p style={{ margin: 0 }}>
-            No account yet? <Link to="/register">Create one</Link> — it only takes a minute.
+            No account yet? <Link to="/register">Create one</Link> - it only takes a minute.
           </p>
         </form>
       </div>

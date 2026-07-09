@@ -71,7 +71,7 @@ code,
   padding: var(--space-6) 0;
 }
 
-/* Section title with the ridge underline — the template's structural motif. */
+/* Section title with the ridge underline - the template's structural motif. */
 .section-title {
   display: inline-block;
   padding-bottom: var(--space-2);
@@ -89,7 +89,7 @@ code,
   border-radius: 2px;
 }
 
-/* Eyebrow: mono, uppercase, quiet — a nod to the ANSI logo. */
+/* Eyebrow: mono, uppercase, quiet - a nod to the ANSI logo. */
 .eyebrow {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

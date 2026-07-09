@@ -11,21 +11,21 @@
   color-scheme: light;
 
   /* Core */
-  --isc-ink: #383838;          /* logo charcoal — primary text */
+  --isc-ink: #383838;          /* logo charcoal - primary text */
   --isc-ink-strong: #1f2023;   /* headings, dark surfaces */
-  --isc-paper: #ffffff;        /* logo white — page background */
+  --isc-paper: #ffffff;        /* logo white - page background */
   --isc-paper-dim: #f6f6f4;    /* subtle panels */
   --isc-line: #e3e3e0;         /* hairline borders */
   --isc-muted: #6f6f6d;        /* secondary text */
 
-  --isc-magenta: #dd0069;      /* signature accent — links, primary actions */
+  --isc-magenta: #dd0069;      /* signature accent - links, primary actions */
   --isc-magenta-ink: #b10056;  /* hover / active */
 
   --isc-on-magenta: #ffffff;   /* text on magenta buttons */
 
   /* Dark surface used by the hero in both themes */
   --isc-hero-bg: var(--isc-ink-strong);
-  /* Text placed on pastel facets (badges, selection) — dark in both themes */
+  /* Text placed on pastel facets (badges, selection) - dark in both themes */
   --isc-on-facet: #1f2023;
 
   /* Pastel facets of the mountain symbol */
@@ -36,7 +36,7 @@
   --isc-rose: #e2abba;
 
   /* The ridge: the faceted-mountain gradient, used as a thin structural line
-     (top of page, under section titles) — never as a background wash. */
+     (top of page, under section titles) - never as a background wash. */
   --isc-ridge: linear-gradient(
     90deg,
     var(--isc-sun) 0%,

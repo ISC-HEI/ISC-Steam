@@ -17,6 +17,7 @@ export function SocialProvider({ children }) {
   const [chats, setChats] = useState({}); // userId -> [messages]
   const [activeChat, setActiveChat] = useState(null); // userId | null
   const [playing, setPlaying] = useState(null); // {slug,title} | null
+  const [dockOpen, setDockOpen] = useState(false);
 
   const activeChatRef = useRef(null);
   activeChatRef.current = activeChat;
@@ -140,7 +141,7 @@ export function SocialProvider({ children }) {
         friends, incoming, outgoing, unread, totalUnread, onlineCount,
         chats, activeChat, setActiveChat, openChat, sendMessage,
         addFriend, acceptFriend, removeFriend,
-        playing,
+        playing, dockOpen, setDockOpen,
       }}
     >
       {children}

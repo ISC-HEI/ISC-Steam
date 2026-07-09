@@ -103,7 +103,7 @@ export default function Reviews({ slug }) {
       )}
 
       <div className="review-list">
-        {data.reviews.length === 0 && <p className="social-empty">No reviews yet — be the first!</p>}
+        {data.reviews.length === 0 && <p className="social-empty">No reviews yet - be the first!</p>}
         {data.reviews.map((r) => (
           <article key={r.id} className="review">
             <header>

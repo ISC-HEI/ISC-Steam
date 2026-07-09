@@ -8,7 +8,7 @@ import Reviews from '../components/Reviews.jsx';
 const isDesktop = typeof window !== 'undefined' && !!window.iscSteam?.desktop;
 
 function formatSize(bytes) {
-  if (!bytes) return '—';
+  if (!bytes) return '-';
   return bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`;
 }
 
@@ -19,6 +19,7 @@ export default function GameDetail() {
   const [error, setError] = useState('');
   const [shot, setShot] = useState(0);
   const [inLibrary, setInLibrary] = useState(false);
+  const [authorLinks, setAuthorLinks] = useState({}); // author name -> username
 
   useEffect(() => {
     if (!user) return;
@@ -26,6 +27,14 @@ export default function GameDetail() {
       .then((d) => setInLibrary(d.entries.some((e) => e.game.slug === slug)))
       .catch(() => {});
   }, [slug, user]);
+
+  // link author names to profiles when they match an account
+  useEffect(() => {
+    if (!game?.authors?.length) return;
+    api.get(`/users/resolve?names=${encodeURIComponent(game.authors.join(','))}`)
+      .then(setAuthorLinks)
+      .catch(() => {});
+  }, [game?.authors?.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addToLibrary() {
     await api.post(`/library/${slug}`);
@@ -117,7 +126,10 @@ export default function GameDetail() {
                   <Link className="btn btn-primary" to="/login">Sign in to play</Link>
                 )}
                 {user && !isDesktop && game.downloadable && (
-                  <a className="btn btn-secondary" href={downloadUrl(game.slug)}>Download</a>
+                  <a className="btn btn-secondary" href={downloadUrl(game.slug)}>Windows</a>
+                )}
+                {user && !isDesktop && game.downloadableLinux && (
+                  <a className="btn btn-secondary" href={downloadUrl(game.slug, 'linux')}>Linux</a>
                 )}
                 {user && !game.downloadable && (
                   <span className="status-pill status-none">no build yet</span>
@@ -125,10 +137,28 @@ export default function GameDetail() {
               </div>
 
               <dl className="meta-list">
-                <dt>Authors</dt><dd>{game.authors?.join(', ') || '—'}</dd>
+                <dt>Authors</dt>
+                <dd>
+                  {game.authors?.length
+                    ? game.authors.map((name, i) => (
+                        <span key={name}>
+                          {i > 0 && ', '}
+                          {authorLinks[name]
+                            ? <Link to={`/user/${authorLinks[name]}`}>{name}</Link>
+                            : name}
+                        </span>
+                      ))
+                    : '-'}
+                </dd>
+                {game.ownerUser && (
+                  <>
+                    <dt>Publisher</dt>
+                    <dd><Link to={`/user/${game.ownerUser.username}`}>{game.ownerUser.displayName}</Link></dd>
+                  </>
+                )}
                 <dt>Version</dt><dd className="mono">{game.version}</dd>
                 <dt>Engine</dt><dd className="mono">{game.engine?.name}{game.engine?.version ? ` ${game.engine.version}` : ''}</dd>
-                <dt>Year</dt><dd>{game.year ?? '—'}</dd>
+                <dt>Year</dt><dd>{game.year ?? '-'}</dd>
                 <dt>Size</dt><dd>{formatSize(game.packageSize)}</dd>
                 <dt>Downloads</dt><dd>{game.downloads}</dd>
                 <dt>Source</dt>
@@ -140,7 +170,7 @@ export default function GameDetail() {
               </dl>
 
               <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>
-                Runs anywhere with Java 11+ — unzip, then double-click <code>run.bat</code> (Windows)
+                Runs anywhere with Java 11+ - unzip, then double-click <code>run.bat</code> (Windows)
                 or <code>run.sh</code> (macOS/Linux).
               </p>
             </div>

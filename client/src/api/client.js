@@ -46,8 +46,12 @@ export const api = {
   delete: (path) => request(path, { method: 'DELETE' }),
 };
 
-/** Direct link usable in <a href> — passes the JWT as a query param. */
-export function downloadUrl(slug) {
+/** Direct link usable in <a href> - passes the JWT as a query param. */
+export function downloadUrl(slug, platform = '') {
   const token = getToken();
-  return `/api/games/${slug}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  const params = new URLSearchParams();
+  if (token) params.set('token', token);
+  if (platform) params.set('platform', platform);
+  const qs = params.toString();
+  return `/api/games/${slug}/download${qs ? `?${qs}` : ''}`;
 }

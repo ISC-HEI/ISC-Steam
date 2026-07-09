@@ -47,6 +47,7 @@ export default function Layout() {
           <nav className="nav" aria-label="Main">
             <NavLink to="/" end>Store</NavLink>
             {user && <NavLink to="/library">Library</NavLink>}
+            {user && <NavLink to={`/user/${user.username}`}>Profile</NavLink>}
             {isStudent && <NavLink to="/dashboard">My games</NavLink>}
             {isAdmin && <NavLink to="/admin">Admin</NavLink>}
             {user ? (
@@ -82,8 +83,12 @@ export default function Layout() {
         <div className="container footer-inner">
           <img src={logo} alt="" aria-hidden="true" />
           <span>
-            ISC Steam — games by ISC students, HES-SO Valais · logos from{' '}
+            ISC Steam - games by ISC students, HES-SO Valais · logos from{' '}
             <a href="https://github.com/ISC-HEI/isc-logos">ISC-HEI/isc-logos</a> (CC BY-NC-SA 4.0)
+          </span>
+          <span className="footer-version mono" title="App version">
+            v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'}
+            {typeof window !== 'undefined' && window.iscSteam?.desktop && ` · launcher v${window.iscSteam.version}`}
           </span>
         </div>
       </footer>

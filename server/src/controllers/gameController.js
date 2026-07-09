@@ -32,7 +32,8 @@ function slugify(s) {
 }
 
 function canManage(user, game) {
-  return user && (user.role === 'admin' || game.owner.toString() === user._id.toString());
+  const ownerId = game.owner?._id ?? game.owner; // handles populated owner
+  return user && (user.role === 'admin' || ownerId?.toString() === user._id.toString());
 }
 
 function metadataFromBody(body, fallback = {}) {
@@ -222,7 +223,7 @@ export async function listGames(req, res, next) {
   }
 }
 
-// GET /api/games/tags — distinct tags across published games (for filters)
+// GET /api/games/tags - distinct tags across published games (for filters)
 export async function listTags(req, res, next) {
   try {
     const tags = await Game.distinct('tags', { published: true });
@@ -235,16 +236,21 @@ export async function listTags(req, res, next) {
 // GET /api/games/:slug
 export async function getGame(req, res, next) {
   try {
-    const game = await Game.findOne({ slug: req.params.slug });
+    const game = await Game.findOne({ slug: req.params.slug }).populate('owner', 'username displayName');
     if (!game) return res.status(404).json({ error: 'Game not found' });
     if (!game.published && !canManage(req.user, game)) return res.status(404).json({ error: 'Game not found' });
-    res.json(game.toStore());
+    res.json({
+      ...game.toStore(),
+      ownerUser: game.owner?.username
+        ? { username: game.owner.username, displayName: game.owner.displayName || game.owner.username }
+        : null,
+    });
   } catch (err) {
     next(err);
   }
 }
 
-// GET /api/games/:slug/media/:mediaId — cover / screenshots (public)
+// GET /api/games/:slug/media/:mediaId - cover / screenshots (public)
 export async function getMedia(req, res, next) {
   try {
     const game = await Game.findOne({ slug: req.params.slug });
@@ -260,22 +266,31 @@ export async function getMedia(req, res, next) {
   }
 }
 
-// GET /api/games/:slug/download — any logged-in account (visitors included)
+// GET /api/games/:slug/download?platform=windows|linux - any logged-in account
 export async function downloadGame(req, res, next) {
   try {
     const game = await Game.findOne({ slug: req.params.slug });
     if (!game || (!game.published && !canManage(req.user, game))) return res.status(404).json({ error: 'Game not found' });
-    if (game.buildStatus !== 'success' || !game.packageFileId) {
-      return res.status(409).json({ error: 'No package available for this game yet' });
+
+    const wantLinux = req.query.platform === 'linux';
+    const fileId = wantLinux ? game.linuxPackageFileId : game.packageFileId;
+    const filename = wantLinux
+      ? game.linuxPackageFilename || `${game.slug}-${game.version}-linux.zip`
+      : game.packageFilename || `${game.slug}-${game.version}.zip`;
+
+    if (game.buildStatus !== 'success' || !fileId) {
+      return res.status(409).json({
+        error: wantLinux ? 'No Linux package available for this game' : 'No package available for this game yet',
+      });
     }
-    const info = await fileInfo(game.packageFileId);
+    const info = await fileInfo(fileId);
     if (!info) return res.status(404).json({ error: 'Package file missing' });
 
     await Game.updateOne({ _id: game._id }, { $inc: { downloads: 1 } });
-    res.set('Content-Type', game.packageContentType || info.contentType || 'application/octet-stream');
+    res.set('Content-Type', (wantLinux ? 'application/zip' : game.packageContentType) || info.contentType || 'application/octet-stream');
     res.set('Content-Length', info.length);
-    res.set('Content-Disposition', `attachment; filename="${game.packageFilename || `${game.slug}-${game.version}.zip`}"`);
-    openDownload(game.packageFileId)
+    res.set('Content-Disposition', `attachment; filename="${filename}"`);
+    openDownload(fileId)
       .on('error', next)
       .pipe(res);
   } catch (err) {
@@ -285,7 +300,7 @@ export async function downloadGame(req, res, next) {
 
 /* -------------------------------------------------------------- publisher -- */
 
-// POST /api/games/inspect-repo { repoUrl, branch? } — prefill visible metadata
+// POST /api/games/inspect-repo { repoUrl, branch? } - prefill visible metadata
 export async function inspectRepo(req, res, next) {
   try {
     const repoUrl = String(req.body.repoUrl ?? '').trim().replace(/\/$/, '');
@@ -300,7 +315,7 @@ export async function inspectRepo(req, res, next) {
   }
 }
 
-// POST /api/games — multipart form, sourceType repo|executable
+// POST /api/games - multipart form, sourceType repo|executable
 export async function createGame(req, res, next) {
   try {
     const sourceType = req.body.sourceType === 'executable' ? 'executable' : 'repo';
@@ -339,7 +354,7 @@ export async function createGame(req, res, next) {
   }
 }
 
-// GET /api/games/mine — publisher dashboard (includes build state + log)
+// GET /api/games/mine - publisher dashboard (includes build state + log)
 export async function listMine(req, res, next) {
   try {
     const filter = req.user.role === 'admin' ? {} : { owner: req.user._id };
@@ -357,7 +372,7 @@ export async function listMine(req, res, next) {
   }
 }
 
-// POST /api/games/:slug/rebuild — re-clone, re-import isc.json, re-package
+// POST /api/games/:slug/rebuild - re-clone, re-import isc.json, re-package
 export async function rebuildGame(req, res, next) {
   try {
     const game = await Game.findOne({ slug: req.params.slug });
@@ -377,7 +392,7 @@ export async function rebuildGame(req, res, next) {
   }
 }
 
-// PATCH /api/games/:slug — owner edits visible metadata/media/source; admin can publish/feature
+// PATCH /api/games/:slug - owner edits visible metadata/media/source; admin can publish/feature
 export async function updateGame(req, res, next) {
   try {
     const game = await Game.findOne({ slug: req.params.slug });
@@ -414,13 +429,14 @@ export async function updateGame(req, res, next) {
   }
 }
 
-// DELETE /api/games/:slug — owner or admin; cleans GridFS
+// DELETE /api/games/:slug - owner or admin; cleans GridFS
 export async function deleteGame(req, res, next) {
   try {
     const game = await Game.findOne({ slug: req.params.slug });
     if (!game) return res.status(404).json({ error: 'Game not found' });
     if (!canManage(req.user, game)) return res.status(403).json({ error: 'Not your game' });
     if (game.packageFileId) await deleteFile(game.packageFileId);
+    if (game.linuxPackageFileId) await deleteFile(game.linuxPackageFileId);
     for (const media of game.media) await deleteFile(media.fileId);
     await game.deleteOne();
     res.status(204).end();

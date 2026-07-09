@@ -1,7 +1,7 @@
 import Game from '../models/Game.js';
 import LibraryEntry from '../models/LibraryEntry.js';
 
-/** GET /api/library — the caller's games, with playtime. */
+/** GET /api/library - the caller's games, with playtime. */
 export async function listLibrary(req, res) {
   const entries = await LibraryEntry.find({ user: req.user._id })
     .sort({ lastPlayedAt: -1, createdAt: -1 })
@@ -19,7 +19,7 @@ export async function listLibrary(req, res) {
   });
 }
 
-/** POST /api/library/:slug — add a game to the caller's library. */
+/** POST /api/library/:slug - add a game to the caller's library. */
 export async function addToLibrary(req, res) {
   const game = await Game.findOne({ slug: String(req.params.slug).toLowerCase() });
   if (!game || !game.published) return res.status(404).json({ error: 'Game not found' });
@@ -39,7 +39,7 @@ export async function removeFromLibrary(req, res) {
   res.status(204).end();
 }
 
-/** POST /api/library/:slug/playtime { seconds } — reported by the desktop launcher after a session. */
+/** POST /api/library/:slug/playtime { seconds } - reported by the desktop launcher after a session. */
 export async function addPlaytime(req, res) {
   const game = await Game.findOne({ slug: String(req.params.slug).toLowerCase() });
   if (!game) return res.status(404).json({ error: 'Game not found' });

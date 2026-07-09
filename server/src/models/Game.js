@@ -50,10 +50,13 @@ const gameSchema = new mongoose.Schema(
     buildLog: { type: String, default: '', maxlength: 100000 },
     builtAt: { type: Date },
     commit: { type: String, default: '' },
-    packageFileId: { type: mongoose.Schema.Types.ObjectId }, // GridFS zip
+    packageFileId: { type: mongoose.Schema.Types.ObjectId }, // GridFS zip (Windows)
     packageFilename: { type: String, trim: true, default: '' },
     packageContentType: { type: String, trim: true, default: 'application/zip' },
     packageSize: { type: Number, default: 0 },
+    linuxPackageFileId: { type: mongoose.Schema.Types.ObjectId }, // GridFS zip (Linux)
+    linuxPackageFilename: { type: String, trim: true, default: '' },
+    linuxPackageSize: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
@@ -85,6 +88,7 @@ gameSchema.methods.toStore = function toStore() {
     builtAt: this.builtAt,
     packageSize: this.packageSize,
     downloadable: this.buildStatus === 'success' && !!this.packageFileId,
+    downloadableLinux: this.buildStatus === 'success' && !!this.linuxPackageFileId,
     coverUrl: cover ? `/api/games/${this.slug}/media/${cover._id}` : null,
     screenshotUrls: screenshots.map((s) => `/api/games/${this.slug}/media/${s._id}`),
     updatedAt: this.updatedAt,

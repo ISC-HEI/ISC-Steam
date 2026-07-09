@@ -6,7 +6,7 @@ when present (or infers minimal metadata from README/source files), compiles the
 (fat jar + `run.bat`/`run.sh`) stored in MongoDB GridFS.
 
 Built on the ISC app template: **Vite + React** client, **Express** API, **MongoDB** via
-Mongoose — styled with the ISC visual identity from [ISC-HEI/isc-logos](https://github.com/ISC-HEI/isc-logos).
+Mongoose - styled with the ISC visual identity from [ISC-HEI/isc-logos](https://github.com/ISC-HEI/isc-logos).
 
 ## Quick start
 
@@ -32,16 +32,16 @@ Without `isc.json`, Scala is inferred from `build.sbt`, `.scala-version`, README
 or dependency jar names such as `*_2.13-...jar` before defaulting to `2.13`.
 
 Open http://localhost:5173. **The first account you register becomes the admin.**
-Everything works without MongoDB too — data routes just return 503 until it's up.
+Everything works without MongoDB too - data routes just return 503 until it's up.
 
 ## How it works
 
 **Roles**
 
-- **Visitor** — anyone can register; can browse and download games.
-- **Student (publisher)** — registers with the class code (`PUBLISHER_CODE` in `server/.env`);
+- **Visitor** - anyone can register; can browse and download games.
+- **Student (publisher)** - registers with the class code (`PUBLISHER_CODE` in `server/.env`);
   can submit repos, trigger rebuilds and read build logs on `/dashboard`.
-- **Admin** — first registered account (or promoted later); moderates games
+- **Admin** - first registered account (or promoted later); moderates games
   (publish/feature), manages accounts on `/admin`.
 
 **Publishing flow**
@@ -54,7 +54,7 @@ Everything works without MongoDB too — data routes just return 503 until it's 
    the requested Scala version against the FunGraphics jar (from the repo root, or vendored in `server/vendor/`),
    merges engine + `scala-library` into one runnable fat jar, and zips it with launcher
    scripts. Builds run one at a time; the full log is visible on the dashboard.
-3. An admin reviews the game and publishes it — it appears in the store, downloadable by
+3. An admin reviews the game and publishes it - it appears in the store, downloadable by
    any signed-in account. Players just unzip and double-click `run.bat` / `run.sh`
    (only Java 11+ required).
 
@@ -106,12 +106,26 @@ the domain to it and certbot provides HTTPS. Update with
 
 Note on game packages: on Windows servers the pipeline uses `jpackage` and games
 launch via `Game.exe`; on Linux it cross-builds the same layout with `jlink`
-(Windows Java runtime from Windows jmods) and games launch via `Game.bat` —
-still no Java install needed for players.
+(Windows Java runtime from Windows jmods) and games launch via `Game.bat` -
+still no Java install needed for players. Linux servers additionally produce a
+Linux package (`run.sh` + native Linux runtime), served from
+`/download?platform=linux`; the store and the Linux desktop app pick it up
+automatically. Releases ship a Linux `ISCSteam-x.y.z.AppImage` alongside the
+Windows installer.
+
+## Profiles
+
+Every account has a Steam-style page at `/user/<username>`: banner + avatar
+(uploaded from Edit profile, stored in GridFS), bio, live status, stat cards
+(games owned, hours, games made, friends, reviews), customizable showcase
+panels (favorite game, games made, recent games, reviews, screenshot gallery
+with lightbox, custom text), an activity feed, a sticky sidebar and a comment
+section with likes. Game pages link authors and the publisher to their
+profiles when the name matches an account.
 
 ## Social features
 
-Friends, chat and presence live in the bottom-right dock (socket.io — the nginx
+Friends, chat and presence live in the bottom-right dock (socket.io - the nginx
 config proxies `/socket.io/` with WebSocket upgrades). Users add friends by
 username, chat 1-to-1, and see who's online or in game. Reviews (1–5 stars +
 text) appear on every game page. "Add to library" puts games on `/library`,
@@ -119,7 +133,7 @@ which tracks hours played.
 
 ## Desktop app (ISCSteam.exe)
 
-`desktop/` is a thin Electron shell that loads the web app from your server —
+`desktop/` is a thin Electron shell that loads the web app from your server -
 no re-release needed when the site changes. Set your server URL once in
 `desktop/package.json` under `iscsteam.url`.
 
@@ -161,12 +175,12 @@ git tag v1.0.0 && git push origin v1.0.0
 | `npm run dev` | client + server together with hot reload |
 | `npm run dev:client` / `dev:server` | one side only |
 | `npm run build` | production client build to `client/dist` |
-| `npm run start` | run the API — also serves `client/dist` if it exists (production) |
+| `npm run start` | run the API - also serves `client/dist` if it exists (production) |
 | `npm run db:up` / `db:down` | local MongoDB via Docker |
 
 ## Attribution
 
 The ISC logos are © their authors, licensed [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 via [ISC-HEI/isc-logos](https://github.com/ISC-HEI/isc-logos). Keep the attribution in the footer,
-and note the non-commercial clause. "Steam" is used here as a nickname for a class project —
+and note the non-commercial clause. "Steam" is used here as a nickname for a class project -
 this is not affiliated with Valve.
