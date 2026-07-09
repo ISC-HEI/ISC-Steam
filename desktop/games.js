@@ -173,7 +173,10 @@ async function play(appUrl, slug) {
   } else if (lower.endsWith('.bat')) {
     // Node passes cmd.exe args verbatim (unquoted), so paths with spaces break
     // unless we quote explicitly. /d /s /c is the canonical safe invocation.
-    child = spawn('cmd.exe', ['/d', '/s', '/c', `"${launcherPath}"`], {
+    // Use ComSpec (absolute path to cmd.exe) rather than the bare name: if the
+    // process PATH doesn't include System32, spawn('cmd.exe') fails with ENOENT.
+    const comspec = process.env.ComSpec || 'C:\\Windows\\System32\\cmd.exe';
+    child = spawn(comspec, ['/d', '/s', '/c', `"${launcherPath}"`], {
       cwd: dir,
       windowsHide: false,
       windowsVerbatimArguments: true,
