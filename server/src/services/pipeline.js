@@ -244,12 +244,18 @@ async function buildGame(gameId) {
     const scalaLibrary = await findScalaLibraryForToolchain(scala, log);
     const runtimeJars = await readableJarFiles(uniqueJarFiles([...dependencyJars, ...mavenJars, scalaLibrary].filter(Boolean)), log);
     const runtimeJarNames = runtimeJars.map((dep) => safeFileName(path.basename(dep)));
-    const manifestClassPath = runtimeJarNames.length ? `Class-Path: ${runtimeJarNames.join(' ')}\r\n` : '';
 
-    put(
-        'META-INF/MANIFEST.MF',
-        Buffer.from(`Manifest-Version: 1.0\r\nMain-Class: ${m.mainClass}\r\n${manifestClassPath}Created-By: ISC Steam\r\n\r\n`)
-    );
+    // JAR manifest lines must not exceed 72 bytes; longer values (e.g. a long
+    // Class-Path) MUST wrap onto continuation lines starting with a space, or the
+    // JVM launcher rejects the whole jar ("unexpected error opening file").
+    const manifestBody =
+      manifestLine('Manifest-Version', '1.0') +
+      manifestLine('Main-Class', m.mainClass) +
+      (runtimeJarNames.length ? manifestLine('Class-Path', runtimeJarNames.join(' ')) : '') +
+      manifestLine('Created-By', 'ISC Steam') +
+      '\r\n';
+
+    put('META-INF/MANIFEST.MF', Buffer.from(manifestBody, 'utf8'));
 
     const classFiles = [];
     await collect(classesDir, () => true, classFiles);
@@ -1471,6 +1477,25 @@ async function ensureJavaFxJmods(modules, log) {
   }
 
   log.add(`Using JavaFX JMODS from ${JAVAFX_JMODS}`);
+}
+
+// Format one JAR-manifest header, wrapping to the 72-byte line limit required by
+// the manifest spec. Continuation lines start with a single space (1 space + up
+// to 71 bytes = 72). Values are treated as UTF-8; we wrap on byte boundaries,
+// which is safe here because manifest keys/values are ASCII.
+function manifestLine(key, value) {
+  const bytes = Buffer.from(`${key}: ${value}`, 'utf8');
+  if (bytes.length <= 72) return `${bytes.toString('utf8')}\r\n`;
+  const parts = [];
+  let start = 0;
+  let max = 72; // first line: 72 bytes
+  while (start < bytes.length) {
+    const chunk = bytes.subarray(start, start + max);
+    parts.push((parts.length ? ' ' : '') + chunk.toString('utf8'));
+    start += max;
+    max = 71; // continuation lines: leading space + 71 bytes = 72
+  }
+  return parts.join('\r\n') + '\r\n';
 }
 
 function mergeJar(target, seen, jarPath, log) {
