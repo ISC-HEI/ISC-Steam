@@ -14,12 +14,15 @@ function formatSize(bytes) {
 
 export default function GameDetail() {
   const { slug } = useParams();
-  const { user } = useAuth();
+  const { user, isStudent } = useAuth();
   const [game, setGame] = useState(null);
   const [error, setError] = useState('');
   const [shot, setShot] = useState(0);
   const [inLibrary, setInLibrary] = useState(false);
   const [authorLinks, setAuthorLinks] = useState({}); // author name -> username
+  const [collab, setCollab] = useState('anon'); // owner | collaborator | pending | none | anon
+  const [collabBusy, setCollabBusy] = useState(false);
+  const [collabError, setCollabError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -42,8 +45,26 @@ export default function GameDetail() {
   }
 
   useEffect(() => {
-    api.get(`/games/${slug}`).then(setGame).catch((err) => setError(err.message));
+    api.get(`/games/${slug}`)
+      .then((g) => {
+        setGame(g);
+        setCollab(g.viewerCollab ?? 'anon');
+      })
+      .catch((err) => setError(err.message));
   }, [slug]);
+
+  async function requestCoOwnership() {
+    setCollabBusy(true);
+    setCollabError('');
+    try {
+      await api.post(`/games/${slug}/collab-request`);
+      setCollab('pending');
+    } catch (err) {
+      setCollabError(err.message);
+    } finally {
+      setCollabBusy(false);
+    }
+  }
 
   if (error) {
     return (
@@ -156,6 +177,19 @@ export default function GameDetail() {
                     <dd><Link to={`/user/${game.ownerUser.username}`}>{game.ownerUser.displayName}</Link></dd>
                   </>
                 )}
+                {game.collaborators?.length > 0 && (
+                  <>
+                    <dt>Co-owners</dt>
+                    <dd>
+                      {game.collaborators.map((c, i) => (
+                        <span key={c.username}>
+                          {i > 0 && ', '}
+                          <Link to={`/user/${c.username}`}>{c.displayName}</Link>
+                        </span>
+                      ))}
+                    </dd>
+                  </>
+                )}
                 <dt>Version</dt><dd className="mono">{game.version}</dd>
                 <dt>Engine</dt><dd className="mono">{game.engine?.name}{game.engine?.version ? ` ${game.engine.version}` : ''}</dd>
                 <dt>Year</dt><dd>{game.year ?? '-'}</dd>
@@ -169,10 +203,31 @@ export default function GameDetail() {
                 </dd>
               </dl>
 
-              <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>
-                Runs anywhere with Java 11+ - unzip, then double-click <code>run.bat</code> (Windows)
-                or <code>run.sh</code> (macOS/Linux).
-              </p>
+              {user && isStudent && (collab === 'none' || collab === 'pending') && (
+                <div className="collab-request">
+                  {collab === 'pending' ? (
+                    <button type="button" className="btn btn-secondary" disabled>Co-ownership request sent</button>
+                  ) : (
+                    <button type="button" className="btn btn-secondary" onClick={requestCoOwnership} disabled={collabBusy}>
+                      {collabBusy ? 'Sending…' : 'Request co-ownership'}
+                    </button>
+                  )}
+                  <p style={{ margin: '0.25rem 0 0', fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>
+                    Made this game as a team? Ask the owner for shared control.
+                  </p>
+                  {collabError && <p className="form-error" style={{ marginTop: '0.25rem' }}>{collabError}</p>}
+                </div>
+              )}
+
+              {!isDesktop && (
+                <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>
+                  Want simpler installs? The{' '}
+                  <a href="https://github.com/ISC-HEI/ISC-Steam/releases" target="_blank" rel="noreferrer">
+                    ISC Steam desktop app
+                  </a>{' '}
+                  installs and launches games in one click - no manual setup.
+                </p>
+              )}
             </div>
           </aside>
         </div>

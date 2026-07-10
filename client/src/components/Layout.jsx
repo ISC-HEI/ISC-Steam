@@ -3,6 +3,7 @@ import logoBlack from '../assets/logo/isc-inline-black.svg';
 import logoWhite from '../assets/logo/isc-inline-white.svg';
 import useTheme from '../hooks/useTheme.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useSocial } from '../context/SocialContext.jsx';
 import SocialDock from './SocialDock.jsx';
 import { UserMenu, PatchNotesBell, AnnouncementBanner } from './TopbarWidgets.jsx';
 
@@ -28,6 +29,7 @@ function MoonIcon() {
 export default function Layout() {
   const { theme, toggleTheme } = useTheme();
   const { user, isStudent, isAdmin } = useAuth();
+  const { collabCount } = useSocial();
   const logo = theme === 'dark' ? logoWhite : logoBlack;
 
   return (
@@ -43,7 +45,12 @@ export default function Layout() {
           <nav className="nav" aria-label="Main">
             <NavLink to="/" end>Store</NavLink>
             {user && <NavLink to="/library">Library</NavLink>}
-            {isStudent && <NavLink to="/dashboard">My games</NavLink>}
+            {isStudent && (
+              <NavLink to="/dashboard" className="nav-with-badge">
+                My games
+                {collabCount > 0 && <span className="nav-badge" aria-label={`${collabCount} pending requests`}>{collabCount}</span>}
+              </NavLink>
+            )}
             {isAdmin && <NavLink to="/admin">Admin</NavLink>}
             {!user && (
               <>

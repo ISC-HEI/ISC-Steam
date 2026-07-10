@@ -102,6 +102,7 @@ function MetadataFields({ form, setForm, compact = false, disabled = false }) {
 
 export default function Dashboard() {
   const [games, setGames] = useState(null);
+  const [collabRequests, setCollabRequests] = useState([]);
   const [error, setError] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
@@ -118,6 +119,10 @@ export default function Dashboard() {
   const editFiles = useRef(null);
   const hasSource = form.sourceType === 'repo' ? !!form.repoUrl.trim() : packageSelected;
 
+  const refreshRequests = useCallback(() => {
+    api.get('/games/collab-requests').then(setCollabRequests).catch(() => {});
+  }, []);
+
   const refresh = useCallback(() => {
     api.get('/games/mine').then((data) => {
       setGames(data);
@@ -126,7 +131,17 @@ export default function Dashboard() {
         timer.current = setTimeout(refresh, 3000);
       }
     }).catch((err) => setError(err.message));
-  }, []);
+    refreshRequests();
+  }, [refreshRequests]);
+
+  async function respondCollab(slug, userId, action) {
+    try {
+      await api.post(`/games/${slug}/collab-request/${userId}/${action}`);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   useEffect(() => {
     refresh();
@@ -342,6 +357,36 @@ export default function Dashboard() {
           </div>
         </form>
 
+        {collabRequests.length > 0 && (
+          <div className="collab-inbox">
+            <h2 className="section-title" style={{ fontSize: 'var(--text-lg)' }}>
+              Co-ownership requests <span className="collab-count">{collabRequests.length}</span>
+            </h2>
+            <table className="table">
+              <tbody>
+                {collabRequests.map((r) => (
+                  <tr key={`${r.gameSlug}-${r.user?.id}`}>
+                    <td>
+                      {r.user
+                        ? <Link to={`/user/${r.user.username}`}><strong>{r.user.displayName}</strong></Link>
+                        : <em>unknown user</em>}
+                      {' '}wants co-ownership of{' '}
+                      <Link to={`/game/${r.gameSlug}`}><strong>{r.gameTitle}</strong></Link>
+                      {r.message && <div className="mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>“{r.message}”</div>}
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="btn btn-primary btn-sm" disabled={!r.user} onClick={() => respondCollab(r.gameSlug, r.user.id, 'accept')}>Accept</button>
+                        <button className="btn btn-ghost btn-sm" disabled={!r.user} onClick={() => respondCollab(r.gameSlug, r.user.id, 'decline')}>Decline</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {error && <p className="form-error">{error}</p>}
         {!games && <p>Loading…</p>}
         {games?.length === 0 && <p>No games yet - submit your game above.</p>}
@@ -359,10 +404,16 @@ export default function Dashboard() {
                   <tr>
                     <td>
                       <strong>{g.title}</strong>
+                      {!g.isOwner && <span className="collab-tag" title="You are a co-owner"> · co-owned</span>}
                       <br />
                       <span className="mono" style={{ fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>
                         {g.slug}{g.commit ? ` @ ${g.commit}` : ''}
                       </span>
+                      {g.collaborators?.length > 0 && (
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>
+                          Co-owners: {g.collaborators.map((c) => c.displayName).join(', ')}
+                        </div>
+                      )}
                     </td>
                     <td>{g.sourceType === 'executable' ? 'upload' : 'repo'}</td>
                     <td><StatusPill status={g.buildStatus} /></td>

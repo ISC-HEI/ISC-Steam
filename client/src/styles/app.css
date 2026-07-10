@@ -237,3 +237,21 @@
   .brand-app { border-left: none; padding-left: 0; }
   .item-form { flex-direction: column; }
 }
+
+/* Co-ownership: nav badge, request button, dashboard inbox */
+.nav-with-badge { position: relative; display: inline-flex; align-items: center; gap: 0.4rem; }
+.nav-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.2rem; height: 1.2rem; padding: 0 0.35rem;
+  border-radius: 999px; background: var(--isc-magenta, #d6006e);
+  color: var(--isc-on-magenta, #fff); font-size: var(--text-xs); font-weight: 600; line-height: 1;
+}
+.collab-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.4rem; height: 1.4rem; padding: 0 0.4rem; margin-left: 0.4rem;
+  border-radius: 999px; background: var(--isc-magenta, #d6006e);
+  color: var(--isc-on-magenta, #fff); font-size: var(--text-xs); font-weight: 600;
+}
+.collab-tag { font-size: var(--text-xs); color: var(--isc-muted); font-weight: 500; }
+.collab-inbox { margin: var(--space-4) 0; }
+.collab-request { margin: var(--space-3) 0 var(--space-2); }

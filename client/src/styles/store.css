@@ -7,7 +7,8 @@
 /* Featured hero -------------------------------------------------------- */
 
 .store-hero {
-  background: var(--isc-hero-bg);
+  background: var(--isc-paper-dim);
+  border-bottom: 1px solid var(--isc-line);
   padding: var(--space-5) 0;
 }
 
@@ -55,11 +56,11 @@
   flex-direction: column;
   gap: var(--space-3);
   justify-content: center;
-  color: #f4f4f2;
+  color: var(--isc-ink);
 }
 
-.hero-side h1 { color: #f4f4f2; font-size: var(--text-xl); margin: 0; }
-.hero-side p { color: #9c9c99; margin: 0; }
+.hero-side h1 { color: var(--isc-ink-strong); font-size: var(--text-xl); margin: 0; }
+.hero-side p { color: var(--isc-muted); margin: 0; }
 
 /* Toolbar (search + filters) ------------------------------------------- */
 

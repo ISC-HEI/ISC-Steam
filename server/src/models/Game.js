@@ -11,10 +11,22 @@ const mediaSchema = new mongoose.Schema(
   { _id: true },
 );
 
+const collabRequestSchema = new mongoose.Schema(
+  {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    message: { type: String, trim: true, maxlength: 500, default: '' },
+  },
+  { timestamps: true, _id: false },
+);
+
 const gameSchema = new mongoose.Schema(
   {
     slug: { type: String, required: true, unique: true, lowercase: true, match: /^[a-z0-9-]+$/ },
-    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // original creator
+
+    // Co-owners with full equal control, plus pending join requests
+    collaborators: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], default: [] },
+    collabRequests: { type: [collabRequestSchema], default: [] },
 
     // Source
     sourceType: { type: String, enum: ['repo', 'executable'], default: 'repo' },

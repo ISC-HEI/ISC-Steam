@@ -17,6 +17,7 @@ export function SocialProvider({ children }) {
   const [chats, setChats] = useState({}); // userId -> [messages]
   const [activeChat, setActiveChat] = useState(null); // userId | null
   const [playing, setPlaying] = useState(null); // {slug,title} | null
+  const [collabCount, setCollabCount] = useState(0); // pending co-ownership requests on my games
   const [dockOpen, setDockOpen] = useState(false);
   const [idle, setIdle] = useState(false);
   const [appearOffline, setAppearOfflineState] = useState(
@@ -163,6 +164,24 @@ export function SocialProvider({ children }) {
     // the server echoes the message back over the socket; no local append needed
   }, []);
 
+  // poll pending co-ownership requests (students/admins only)
+  const refreshCollab = useCallback(() => {
+    api.get('/games/collab-requests')
+      .then((rs) => setCollabCount(Array.isArray(rs) ? rs.length : 0))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const canManage = user?.role === 'student' || user?.role === 'admin';
+    if (!canManage) {
+      setCollabCount(0);
+      return undefined;
+    }
+    refreshCollab();
+    const id = setInterval(refreshCollab, 45000);
+    return () => clearInterval(id);
+  }, [user?.id, user?.role, refreshCollab]);
+
   const sendImage = useCallback(async (userId, file) => {
     const form = new FormData();
     form.append('image', file);
@@ -180,6 +199,7 @@ export function SocialProvider({ children }) {
         addFriend, acceptFriend, removeFriend,
         playing, dockOpen, setDockOpen,
         idle, appearOffline, setAppearOffline,
+        collabCount, refreshCollab,
       }}
     >
       {children}

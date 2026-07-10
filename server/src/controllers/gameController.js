@@ -32,8 +32,12 @@ function slugify(s) {
 }
 
 function canManage(user, game) {
-  const ownerId = game.owner?._id ?? game.owner; // handles populated owner
-  return user && (user.role === 'admin' || ownerId?.toString() === user._id.toString());
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  const uid = user._id.toString();
+  const ownerId = (game.owner?._id ?? game.owner)?.toString(); // handles populated owner
+  if (ownerId === uid) return true;
+  return (game.collaborators ?? []).some((c) => (c?._id ?? c)?.toString() === uid);
 }
 
 function metadataFromBody(body, fallback = {}) {
@@ -236,14 +240,33 @@ export async function listTags(req, res, next) {
 // GET /api/games/:slug
 export async function getGame(req, res, next) {
   try {
-    const game = await Game.findOne({ slug: req.params.slug }).populate('owner', 'username displayName');
+    const game = await Game.findOne({ slug: req.params.slug })
+      .populate('owner', 'username displayName')
+      .populate('collaborators', 'username displayName');
     if (!game) return res.status(404).json({ error: 'Game not found' });
     if (!game.published && !canManage(req.user, game)) return res.status(404).json({ error: 'Game not found' });
+
+    const uid = req.user?._id?.toString();
+    const ownerId = (game.owner?._id ?? game.owner)?.toString();
+    let viewerCollab = 'anon';
+    if (uid) {
+      if (ownerId === uid) viewerCollab = 'owner';
+      else if (game.collaborators.some((c) => (c._id ?? c).toString() === uid)) viewerCollab = 'collaborator';
+      else if (game.collabRequests.some((r) => r.user.toString() === uid)) viewerCollab = 'pending';
+      else viewerCollab = 'none';
+    }
+
     res.json({
       ...game.toStore(),
       ownerUser: game.owner?.username
         ? { username: game.owner.username, displayName: game.owner.displayName || game.owner.username }
         : null,
+      collaborators: game.collaborators.map((c) => ({
+        username: c.username,
+        displayName: c.displayName || c.username,
+      })),
+      viewerCollab,
+      canManage: canManage(req.user, game),
     });
   } catch (err) {
     next(err);
@@ -357,8 +380,13 @@ export async function createGame(req, res, next) {
 // GET /api/games/mine - publisher dashboard (includes build state + log)
 export async function listMine(req, res, next) {
   try {
-    const filter = req.user.role === 'admin' ? {} : { owner: req.user._id };
-    const games = await Game.find(filter).sort({ updatedAt: -1 }).populate('owner', 'username displayName');
+    const filter = req.user.role === 'admin'
+      ? {}
+      : { $or: [{ owner: req.user._id }, { collaborators: req.user._id }] };
+    const games = await Game.find(filter).sort({ updatedAt: -1 })
+      .populate('owner', 'username displayName')
+      .populate('collaborators', 'username displayName');
+    const uid = req.user._id.toString();
     res.json(games.map((g) => ({
       ...g.toStore(),
       buildLog: g.buildLog,
@@ -366,6 +394,9 @@ export async function listMine(req, res, next) {
       branch: g.branch,
       commit: g.commit,
       owner: { username: g.owner?.username, displayName: g.owner?.displayName || g.owner?.username },
+      collaborators: g.collaborators.map((c) => ({ username: c.username, displayName: c.displayName || c.username })),
+      isOwner: (g.owner?._id ?? g.owner)?.toString() === uid || req.user.role === 'admin',
+      pendingRequestCount: g.collabRequests.length,
     })));
   } catch (err) {
     next(err);
@@ -440,6 +471,115 @@ export async function deleteGame(req, res, next) {
     for (const media of game.media) await deleteFile(media.fileId);
     await game.deleteOne();
     res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+}
+
+/* ----------------------------------------------------------- collaborators -- */
+
+// POST /api/games/:slug/collab-request { message? } - ask to become a co-owner
+export async function requestCollab(req, res, next) {
+  try {
+    const game = await Game.findOne({ slug: req.params.slug });
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+    const uid = req.user._id.toString();
+    if ((game.owner?._id ?? game.owner)?.toString() === uid) {
+      return res.status(400).json({ error: 'You already own this game' });
+    }
+    if (game.collaborators.some((c) => c.toString() === uid)) {
+      return res.status(400).json({ error: 'You are already a co-owner of this game' });
+    }
+    if (game.collabRequests.some((r) => r.user.toString() === uid)) {
+      return res.status(409).json({ error: 'You already have a pending request for this game' });
+    }
+    game.collabRequests.push({ user: req.user._id, message: String(req.body.message ?? '').trim().slice(0, 500) });
+    await game.save();
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/games/collab-requests - pending requests on games I manage (owner/co-owner)
+export async function listIncomingCollab(req, res, next) {
+  try {
+    const uid = req.user._id;
+    const filter = req.user.role === 'admin'
+      ? { 'collabRequests.0': { $exists: true } }
+      : { $or: [{ owner: uid }, { collaborators: uid }], 'collabRequests.0': { $exists: true } };
+    const games = await Game.find(filter)
+      .populate('collabRequests.user', 'username displayName')
+      .sort({ updatedAt: -1 });
+    const requests = [];
+    for (const g of games) {
+      for (const r of g.collabRequests) {
+        requests.push({
+          gameSlug: g.slug,
+          gameTitle: g.title,
+          user: r.user
+            ? { id: r.user._id, username: r.user.username, displayName: r.user.displayName || r.user.username }
+            : null,
+          message: r.message,
+          createdAt: r.createdAt,
+        });
+      }
+    }
+    res.json(requests);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/games/:slug/collab-request/:userId/accept - grant co-ownership
+export async function acceptCollab(req, res, next) {
+  try {
+    const game = await Game.findOne({ slug: req.params.slug });
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+    if (!canManage(req.user, game)) return res.status(403).json({ error: 'Not your game' });
+    const { userId } = req.params;
+    const idx = game.collabRequests.findIndex((r) => r.user.toString() === userId);
+    if (idx === -1) return res.status(404).json({ error: 'No such pending request' });
+    game.collabRequests.splice(idx, 1);
+    const isOwner = (game.owner?._id ?? game.owner)?.toString() === userId;
+    if (!isOwner && !game.collaborators.some((c) => c.toString() === userId)) {
+      game.collaborators.push(userId);
+    }
+    await game.save();
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/games/:slug/collab-request/:userId/decline - reject a request
+export async function declineCollab(req, res, next) {
+  try {
+    const game = await Game.findOne({ slug: req.params.slug });
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+    if (!canManage(req.user, game)) return res.status(403).json({ error: 'Not your game' });
+    const before = game.collabRequests.length;
+    game.collabRequests = game.collabRequests.filter((r) => r.user.toString() !== req.params.userId);
+    if (game.collabRequests.length === before) return res.status(404).json({ error: 'No such pending request' });
+    await game.save();
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/games/:slug/collaborators/:userId - remove a co-owner (never the original owner)
+export async function removeCollaborator(req, res, next) {
+  try {
+    const game = await Game.findOne({ slug: req.params.slug });
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+    if (!canManage(req.user, game)) return res.status(403).json({ error: 'Not your game' });
+    if ((game.owner?._id ?? game.owner)?.toString() === req.params.userId) {
+      return res.status(400).json({ error: 'The original owner cannot be removed' });
+    }
+    game.collaborators = game.collaborators.filter((c) => c.toString() !== req.params.userId);
+    await game.save();
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }
