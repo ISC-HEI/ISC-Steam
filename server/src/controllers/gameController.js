@@ -21,6 +21,18 @@ const PACKAGE_TYPES = new Set([
 ]);
 const execFileAsync = promisify(execFile);
 
+/** sourceType 'web': validate the hosted site URL (https only). */
+function parseWebsiteUrl(value) {
+  const url = String(value ?? '').trim().replace(/\/$/, '');
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') throw new Error('not https');
+    return url;
+  } catch {
+    throw Object.assign(new Error('websiteUrl must be a valid https:// URL'), { status: 400 });
+  }
+}
+
 function slugify(s) {
   return s
     .toLowerCase()
@@ -211,15 +223,19 @@ async function inspectRepoMetadata(repoUrl, branch = '') {
 
 /* ------------------------------------------------------------------ store -- */
 
-// GET /api/games?search=&tag=&sort=new|popular|title&featured=1
+// GET /api/games?search=&tag=&sort=new|popular|title&featured=1&type=game|web
 export async function listGames(req, res, next) {
   try {
-    const filter = { published: true, buildStatus: 'success' };
+    const filter = { published: true };
+    // Web entries never go through the build pipeline; games must have built successfully.
+    if (req.query.type === 'web') filter.sourceType = 'web';
+    else if (req.query.type === 'game') Object.assign(filter, { buildStatus: 'success', sourceType: { $ne: 'web' } });
+    else filter.$or = [{ buildStatus: 'success' }, { sourceType: 'web' }];
     if (req.query.tag) filter.tags = String(req.query.tag).toLowerCase();
     if (req.query.featured) filter.featured = true;
     if (req.query.search) filter.$text = { $search: String(req.query.search) };
 
-    const sort = { popular: { downloads: -1 }, title: { title: 1 }, new: { builtAt: -1 } }[req.query.sort] ?? { featured: -1, builtAt: -1 };
+    const sort = { popular: { downloads: -1 }, title: { title: 1 }, new: { builtAt: -1, createdAt: -1 } }[req.query.sort] ?? { featured: -1, builtAt: -1, createdAt: -1 };
     const games = await Game.find(filter).sort(sort).limit(100);
     res.json(games.map((g) => g.toStore()));
   } catch (err) {
@@ -338,14 +354,15 @@ export async function inspectRepo(req, res, next) {
   }
 }
 
-// POST /api/games - multipart form, sourceType repo|executable
+// POST /api/games - multipart form, sourceType repo|executable|web
 export async function createGame(req, res, next) {
   try {
-    const sourceType = req.body.sourceType === 'executable' ? 'executable' : 'repo';
+    const sourceType = ['executable', 'web'].includes(req.body.sourceType) ? req.body.sourceType : 'repo';
     const repoUrl = String(req.body.repoUrl ?? '').trim().replace(/\/$/, '');
     if (sourceType === 'repo' && !REPO_URL_RE.test(repoUrl)) {
       return res.status(400).json({ error: 'repoUrl must be a public https git URL (github.com / gitlab.com / githepia)' });
     }
+    const websiteUrl = sourceType === 'web' ? parseWebsiteUrl(req.body.websiteUrl) : '';
     const metadata = metadataFromBody(req.body);
     validateUploads(req.files, { requirePackage: sourceType === 'executable' });
     const slug = slugify(req.body.slug || metadata.title || repoUrl.split('/').pop()?.replace(/\.git$/, ''));
@@ -356,7 +373,8 @@ export async function createGame(req, res, next) {
       slug,
       owner: req.user._id,
       sourceType,
-      repoUrl,
+      repoUrl: sourceType === 'web' ? '' : repoUrl,
+      websiteUrl,
       branch: String(req.body.branch ?? '').trim(),
       metadataLocked: true,
       ...metadata,
@@ -367,7 +385,7 @@ export async function createGame(req, res, next) {
     await addUploadedImages(game, req.files, { replace: true });
     if (sourceType === 'executable') {
       await replacePackage(game, req.files?.package?.[0]);
-    } else {
+    } else if (sourceType === 'repo') {
       enqueueBuild(game._id);
     }
     await game.save();
@@ -442,6 +460,9 @@ export async function updateGame(req, res, next) {
       game.repoUrl = url;
     }
     if (typeof req.body.branch === 'string') game.branch = req.body.branch.trim();
+    if (typeof req.body.websiteUrl === 'string' && game.sourceType === 'web') {
+      game.websiteUrl = parseWebsiteUrl(req.body.websiteUrl);
+    }
     await addUploadedImages(game, req.files, { replace: req.body.replaceMedia === 'true' });
     if (req.files?.package?.[0]) {
       game.sourceType = 'executable';

@@ -14,6 +14,7 @@ import BannerCrop from '../components/profile/BannerCrop.jsx';
 const SHOWCASE_OPTIONS = [
   ['favorite-game', 'Favorite game'],
   ['games-made', 'Games made'],
+  ['web-apps-made', 'Web apps made'],
   ['recent-games', 'Recent games'],
   ['reviews', 'Reviews'],
   ['screenshots', 'Screenshot gallery'],
@@ -219,7 +220,11 @@ export default function Profile() {
 
   const showcases = profile.showcases?.length
     ? profile.showcases
-    : [{ type: 'games-made' }, { type: 'recent-games' }];
+    : [
+        { type: 'games-made' },
+        ...(profile.webAppsMade?.length ? [{ type: 'web-apps-made' }] : []),
+        { type: 'recent-games' },
+      ];
 
   const backgroundUrl = profile.user.backgroundUrl;
   const visibleActivity = showAllActivity ? activity : activity.slice(0, 5);
@@ -242,6 +247,9 @@ export default function Profile() {
             <StatCard icon="🎮" value={profile.stats.gamesOwned} label="Games owned" />
             <StatCard icon="⏱" value={`${profile.stats.hoursPlayed} h`} label="Hours played" />
             <StatCard icon="🛠" value={profile.stats.gamesMade} label="Games made" />
+            {profile.stats.webAppsMade > 0 && (
+              <StatCard icon="🌐" value={profile.stats.webAppsMade} label="Web apps" />
+            )}
             <StatCard icon="👥" value={profile.stats.friends} label="Friends" />
             <StatCard icon="★" value={profile.stats.reviews} label="Reviews" />
           </div>
@@ -298,11 +306,16 @@ export default function Profile() {
                 </SidebarSection>
               )}
 
-              {profile.gamesMade.length > 0 && (
+              {(profile.gamesMade.length > 0 || profile.webAppsMade?.length > 0) && (
                 <SidebarSection title="External links">
                   {profile.gamesMade.filter((g) => g.repoUrl).map((g) => (
                     <a key={g.slug} className="sidebar-link" href={g.repoUrl} target="_blank" rel="noreferrer">
                       {g.title} repository
+                    </a>
+                  ))}
+                  {(profile.webAppsMade ?? []).filter((g) => g.websiteUrl).map((g) => (
+                    <a key={g.slug} className="sidebar-link" href={g.websiteUrl} target="_blank" rel="noreferrer">
+                      {g.title} website
                     </a>
                   ))}
                 </SidebarSection>

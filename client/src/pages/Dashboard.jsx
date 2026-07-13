@@ -8,6 +8,7 @@ const REPO_URL_RE = /^https:\/\/(github\.com|gitlab\.com|githepia\.hesge\.ch)\/[
 const EMPTY_FORM = {
   sourceType: 'repo',
   repoUrl: '',
+  websiteUrl: '',
   branch: '',
   slug: '',
   title: '',
@@ -37,6 +38,7 @@ function metadataFromGame(game) {
   return {
     sourceType: game.sourceType || 'repo',
     repoUrl: game.repoUrl || '',
+    websiteUrl: game.websiteUrl || '',
     branch: game.branch || '',
     slug: game.slug,
     title: game.title || '',
@@ -117,7 +119,11 @@ export default function Dashboard() {
   const lastInspected = useRef('');
   const createFiles = useRef(null);
   const editFiles = useRef(null);
-  const hasSource = form.sourceType === 'repo' ? !!form.repoUrl.trim() : packageSelected;
+  const hasSource = form.sourceType === 'repo'
+    ? !!form.repoUrl.trim()
+    : form.sourceType === 'web'
+      ? /^https:\/\/\S+\.\S+/.test(form.websiteUrl.trim())
+      : packageSelected;
 
   const refreshRequests = useCallback(() => {
     api.get('/games/collab-requests').then(setCollabRequests).catch(() => {});
@@ -290,9 +296,27 @@ export default function Dashboard() {
             <button type="button" className={form.sourceType === 'executable' ? 'active' : ''} onClick={() => updateForm('sourceType', 'executable')}>
               Executable
             </button>
+            <button type="button" className={form.sourceType === 'web' ? 'active' : ''} onClick={() => {
+              updateForm('sourceType', 'web');
+              setPackageSelected(false);
+            }}>
+              Website
+            </button>
           </div>
 
-          {form.sourceType === 'repo' ? (
+          {form.sourceType === 'web' ? (
+            <label className="field">
+              <span>Hosted website URL</span>
+              <input
+                className="input"
+                type="url"
+                placeholder="https://your-app.example.com"
+                value={form.websiteUrl}
+                onChange={(e) => updateForm('websiteUrl', e.target.value)}
+                required
+              />
+            </label>
+          ) : form.sourceType === 'repo' ? (
             <div className="repo-source-fields">
               <div className="store-toolbar" style={{ marginBottom: 0 }}>
                 <input
@@ -350,7 +374,9 @@ export default function Dashboard() {
               </div>
 
               <div className="row-actions">
-                <button className="btn btn-primary" disabled={busy}>{busy ? 'Submitting…' : 'Submit game'}</button>
+                <button className="btn btn-primary" disabled={busy}>
+                  {busy ? 'Submitting…' : form.sourceType === 'web' ? 'Submit web app' : 'Submit game'}
+                </button>
                 <Link className="btn btn-secondary" to="/docs/manifest">Manifest reference</Link>
               </div>
             </div>
@@ -415,7 +441,7 @@ export default function Dashboard() {
                         </div>
                       )}
                     </td>
-                    <td>{g.sourceType === 'executable' ? 'upload' : 'repo'}</td>
+                    <td>{g.sourceType === 'executable' ? 'upload' : g.sourceType === 'web' ? 'web' : 'repo'}</td>
                     <td><StatusPill status={g.buildStatus} /></td>
                     <td>{g.published ? 'published' : 'awaiting approval'}</td>
                     <td>{g.downloads}</td>
@@ -450,6 +476,12 @@ export default function Dashboard() {
                               <input className="input" style={{ maxWidth: '10rem' }} value={editForm.branch} onChange={(e) => setEditForm((prev) => ({ ...prev, branch: e.target.value }))} placeholder="branch (optional)" />
                             </div>
                           )}
+                          {g.sourceType === 'web' && (
+                            <label className="field">
+                              <span>Hosted website URL</span>
+                              <input className="input" type="url" value={editForm.websiteUrl} onChange={(e) => setEditForm((prev) => ({ ...prev, websiteUrl: e.target.value }))} placeholder="https://your-app.example.com" />
+                            </label>
+                          )}
                           <MetadataFields form={editForm} setForm={setEditForm} compact />
                           <div className="dashboard-form-grid">
                             <label className="field">
@@ -460,10 +492,12 @@ export default function Dashboard() {
                               <span>Add screenshots</span>
                               <input className="input" type="file" name="screenshots" accept="image/png,image/jpeg,image/gif,image/webp" multiple />
                             </label>
-                            <label className="field">
-                              <span>Replace package</span>
-                              <input className="input" type="file" name="package" accept=".zip,.jar,.exe,application/zip,application/java-archive" />
-                            </label>
+                            {g.sourceType !== 'web' && (
+                              <label className="field">
+                                <span>Replace package</span>
+                                <input className="input" type="file" name="package" accept=".zip,.jar,.exe,application/zip,application/java-archive" />
+                              </label>
+                            )}
                           </div>
                           <div className="row-actions">
                             <button className="btn btn-primary btn-sm" disabled={busy}>Save</button>

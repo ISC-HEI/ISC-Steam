@@ -80,13 +80,17 @@ export default function GameDetail() {
   if (!game) return <section className="section"><div className="container"><p>Loading…</p></div></section>;
 
   const shots = game.screenshotUrls?.length ? game.screenshotUrls : game.coverUrl ? [game.coverUrl] : [];
+  const isWeb = game.sourceType === 'web' && !!game.websiteUrl;
+  const siteHost = isWeb ? new URL(game.websiteUrl).hostname : '';
 
   return (
     <>
       <div className="game-page-head">
         <div className="container">
           <p className="eyebrow">
-            <Link to="/" style={{ color: 'inherit' }}>Store</Link> / {game.title}
+            {isWeb
+              ? <Link to="/web" style={{ color: 'inherit' }}>Web</Link>
+              : <Link to="/" style={{ color: 'inherit' }}>Store</Link>} / {game.title}
           </p>
           <h1>{game.title}</h1>
         </div>
@@ -95,6 +99,27 @@ export default function GameDetail() {
       <section className="section">
         <div className="container game-detail">
           <div>
+            {isWeb && (
+              <div className="web-embed">
+                <div className="web-embed-bar">
+                  <span className="mono" title={game.websiteUrl}>{siteHost}</span>
+                  <a className="btn btn-secondary" href={game.websiteUrl} target="_blank" rel="noreferrer">
+                    Visit site ↗
+                  </a>
+                </div>
+                <iframe
+                  src={game.websiteUrl}
+                  title={`${game.title} live preview`}
+                  loading="lazy"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                  referrerPolicy="no-referrer"
+                />
+                <p className="web-embed-hint">
+                  Blank preview? The site probably doesn't allow embedding - use "Visit site" instead.
+                </p>
+              </div>
+            )}
+
             {shots.length > 0 && (
               <>
                 <img className="screenshot-main" src={shots[shot]} alt={`${game.title} screenshot`} />
@@ -114,7 +139,9 @@ export default function GameDetail() {
               </>
             )}
 
-            <h2 className="section-title" style={{ marginTop: 'var(--space-4)' }}>About this game</h2>
+            <h2 className="section-title" style={{ marginTop: 'var(--space-4)' }}>
+              {isWeb ? 'About this project' : 'About this game'}
+            </h2>
             <p className="game-description">{game.description || game.shortDescription}</p>
 
             {game.controls && (
@@ -135,7 +162,11 @@ export default function GameDetail() {
 
               <div className="download-row">
                 <span className="price-free">Free</span>
-                {user ? (
+                {isWeb ? (
+                  <a className="btn btn-primary" href={game.websiteUrl} target="_blank" rel="noreferrer">
+                    Visit site ↗
+                  </a>
+                ) : user ? (
                   inLibrary ? (
                     <Link className="btn btn-secondary" to="/library">In library ✓</Link>
                   ) : (
@@ -146,13 +177,13 @@ export default function GameDetail() {
                 ) : (
                   <Link className="btn btn-primary" to="/login">Sign in to play</Link>
                 )}
-                {user && !isDesktop && game.downloadable && (
+                {!isWeb && user && !isDesktop && game.downloadable && (
                   <a className="btn btn-secondary" href={downloadUrl(game.slug)}>Windows</a>
                 )}
-                {user && !isDesktop && game.downloadableLinux && (
+                {!isWeb && user && !isDesktop && game.downloadableLinux && (
                   <a className="btn btn-secondary" href={downloadUrl(game.slug, 'linux')}>Linux</a>
                 )}
-                {user && !game.downloadable && (
+                {!isWeb && user && !game.downloadable && (
                   <span className="status-pill status-none">no build yet</span>
                 )}
               </div>
@@ -191,15 +222,25 @@ export default function GameDetail() {
                   </>
                 )}
                 <dt>Version</dt><dd className="mono">{game.version}</dd>
-                <dt>Engine</dt><dd className="mono">{game.engine?.name}{game.engine?.version ? ` ${game.engine.version}` : ''}</dd>
+                {!isWeb && (
+                  <>
+                    <dt>Engine</dt><dd className="mono">{game.engine?.name}{game.engine?.version ? ` ${game.engine.version}` : ''}</dd>
+                  </>
+                )}
                 <dt>Year</dt><dd>{game.year ?? '-'}</dd>
-                <dt>Size</dt><dd>{formatSize(game.packageSize)}</dd>
-                <dt>Downloads</dt><dd>{game.downloads}</dd>
+                {!isWeb && (
+                  <>
+                    <dt>Size</dt><dd>{formatSize(game.packageSize)}</dd>
+                    <dt>Downloads</dt><dd>{game.downloads}</dd>
+                  </>
+                )}
                 <dt>Source</dt>
                 <dd>
-                  {game.repoUrl
-                    ? <a href={game.repoUrl} target="_blank" rel="noreferrer">Git repository</a>
-                    : 'Uploaded package'}
+                  {isWeb
+                    ? <a href={game.websiteUrl} target="_blank" rel="noreferrer">{siteHost}</a>
+                    : game.repoUrl
+                      ? <a href={game.repoUrl} target="_blank" rel="noreferrer">Git repository</a>
+                      : 'Uploaded package'}
                 </dd>
               </dl>
 
@@ -213,7 +254,7 @@ export default function GameDetail() {
                     </button>
                   )}
                   <p style={{ margin: '0.25rem 0 0', fontSize: 'var(--text-xs)', color: 'var(--isc-muted)' }}>
-                    Made this game as a team? Ask the owner for shared control.
+                    {isWeb ? 'Built this site as a team?' : 'Made this game as a team?'} Ask the owner for shared control.
                   </p>
                   {collabError && <p className="form-error" style={{ marginTop: '0.25rem' }}>{collabError}</p>}
                 </div>

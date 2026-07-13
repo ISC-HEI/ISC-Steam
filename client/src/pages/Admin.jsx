@@ -104,13 +104,17 @@ export default function Admin() {
                 <tr key={g.slug}>
                   <td><Link to={`/game/${g.slug}`}>{g.title}</Link></td>
                   <td>{g.owner?.displayName}</td>
-                  <td><StatusPill status={g.buildStatus} /></td>
+                  <td>
+                    {g.sourceType === 'web'
+                      ? <span className="badge badge-sky">web</span>
+                      : <StatusPill status={g.buildStatus} />}
+                  </td>
                   <td>
                     <button
                       className={`btn btn-sm ${g.published ? 'btn-secondary' : 'btn-primary'}`}
                       onClick={() => patchGame(g.slug, { published: !g.published })}
-                      disabled={!g.downloadable && !g.published}
-                      title={!g.downloadable && !g.published ? 'Needs a successful build first' : ''}
+                      disabled={g.sourceType !== 'web' && !g.downloadable && !g.published}
+                      title={g.sourceType !== 'web' && !g.downloadable && !g.published ? 'Needs a successful build first' : ''}
                     >
                       {g.published ? 'Unpublish' : 'Publish'}
                     </button>

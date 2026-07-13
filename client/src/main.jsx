@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { SocialProvider } from './context/SocialContext.jsx';
 import Layout from './components/Layout.jsx';
 import Store from './pages/Store.jsx';
+import WebApps from './pages/WebApps.jsx';
 import GameDetail from './pages/GameDetail.jsx';
 import Library from './pages/Library.jsx';
 import Profile from './pages/Profile.jsx';
@@ -42,6 +43,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Store />} />
+            <Route path="web" element={<WebApps />} />
             <Route path="game/:slug" element={<GameDetail />} />
             <Route path="user/:username" element={<Profile />} />
             <Route

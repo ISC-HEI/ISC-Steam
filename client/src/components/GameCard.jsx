@@ -35,7 +35,9 @@ export default function GameCard({ game }) {
         <p className="card-desc">{game.shortDescription}</p>
         <div className="card-meta">
           <TagRow tags={game.tags} />
-          <span>{game.downloads} ↓</span>
+          {game.sourceType === 'web'
+            ? <span className="badge badge-sky">Web</span>
+            : <span>{game.downloads} ↓</span>}
         </div>
       </div>
     </Link>

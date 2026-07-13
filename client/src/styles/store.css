@@ -439,3 +439,37 @@
   .buybox { position: static; }
   .dashboard-form-grid { grid-template-columns: 1fr; }
 }
+
+/* Web app embed (sourceType 'web') ------------------------------------------ */
+
+.web-embed { margin-bottom: var(--space-4); }
+
+.web-embed-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--isc-line);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--isc-paper-dim);
+  font-size: var(--text-sm);
+}
+
+.web-embed-bar .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.web-embed iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--isc-line);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--isc-hero-bg);
+}
+
+.web-embed-hint {
+  margin: 0.35rem 0 0;
+  font-size: var(--text-xs);
+  color: var(--isc-muted);
+}

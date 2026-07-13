@@ -29,8 +29,9 @@ const gameSchema = new mongoose.Schema(
     collabRequests: { type: [collabRequestSchema], default: [] },
 
     // Source
-    sourceType: { type: String, enum: ['repo', 'executable'], default: 'repo' },
+    sourceType: { type: String, enum: ['repo', 'executable', 'web'], default: 'repo' },
     repoUrl: { type: String, trim: true, default: '' },
+    websiteUrl: { type: String, trim: true, default: '' }, // sourceType 'web': hosted site URL
     branch: { type: String, trim: true, default: '' }, // '' = repo default branch
     metadataLocked: { type: Boolean, default: false },
     mediaLocked: { type: Boolean, default: false },
@@ -93,6 +94,7 @@ gameSchema.methods.toStore = function toStore() {
     engine: this.engine,
     sourceType: this.sourceType,
     repoUrl: this.repoUrl,
+    websiteUrl: this.websiteUrl,
     published: this.published,
     featured: this.featured,
     downloads: this.downloads,

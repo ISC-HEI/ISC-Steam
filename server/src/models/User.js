@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 export const ROLES = ['visitor', 'student', 'admin'];
-export const SHOWCASE_TYPES = ['favorite-game', 'games-made', 'recent-games', 'reviews', 'screenshots', 'custom'];
+export const SHOWCASE_TYPES = ['favorite-game', 'games-made', 'web-apps-made', 'recent-games', 'reviews', 'screenshots', 'custom'];
 
 const showcaseSchema = new mongoose.Schema(
   {

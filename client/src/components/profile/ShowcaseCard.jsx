@@ -6,6 +6,7 @@ import Gallery from './Gallery.jsx';
 const TITLES = {
   'favorite-game': 'Favorite game',
   'games-made': 'Games made',
+  'web-apps-made': 'Web apps made',
   'recent-games': 'Recent activity',
   reviews: 'Reviews',
   screenshots: 'Screenshot gallery',
@@ -19,7 +20,7 @@ function Stars({ value }) {
 }
 
 export default function ShowcaseCard({ showcase, profile }) {
-  const { gamesMade, recentGames, recentReviews } = profile;
+  const { gamesMade, webAppsMade = [], recentGames, recentReviews } = profile;
   const title = showcase.title || TITLES[showcase.type];
 
   let body = null;
@@ -47,6 +48,13 @@ export default function ShowcaseCard({ showcase, profile }) {
         <div className="showcase-games">{gamesMade.map((g) => <GameCard key={g.slug} game={g} />)}</div>
       ) : (
         <p className="social-empty">No published games yet.</p>
+      );
+      break;
+    case 'web-apps-made':
+      body = webAppsMade.length ? (
+        <div className="showcase-games">{webAppsMade.map((g) => <GameCard key={g.slug} game={g} />)}</div>
+      ) : (
+        <p className="social-empty">No published web apps yet.</p>
       );
       break;
     case 'recent-games':

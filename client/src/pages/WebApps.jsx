@@ -3,33 +3,26 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import GameCard from '../components/GameCard.jsx';
 
-export default function Store() {
-  const [games, setGames] = useState(null);
-  const [tags, setTags] = useState([]);
+export default function WebApps() {
+  const [apps, setApps] = useState(null);
   const [search, setSearch] = useState('');
-  const [tag, setTag] = useState('');
   const [sort, setSort] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/games/tags').then(setTags).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams({ type: 'game' }); // web apps live in /web
+    const params = new URLSearchParams({ type: 'web' });
     if (search) params.set('search', search);
-    if (tag) params.set('tag', tag);
     if (sort) params.set('sort', sort);
     const t = setTimeout(() => {
       api
         .get(`/games?${params}`)
-        .then((data) => { setGames(data); setError(''); })
+        .then((data) => { setApps(data); setError(''); })
         .catch((err) => setError(err.message));
     }, search ? 250 : 0);
     return () => clearTimeout(t);
-  }, [search, tag, sort]);
+  }, [search, sort]);
 
-  const featured = useMemo(() => games?.find((g) => g.featured && g.coverUrl) ?? games?.find((g) => g.coverUrl), [games]);
+  const featured = useMemo(() => apps?.find((a) => a.featured && a.coverUrl) ?? apps?.find((a) => a.coverUrl), [apps]);
 
   return (
     <>
@@ -46,15 +39,15 @@ export default function Store() {
             </Link>
           ) : (
             <div className="featured-capsule" style={{ display: 'grid', placeItems: 'center' }}>
-              <span className="cover-fallback">No games published yet</span>
+              <span className="cover-fallback">No web apps published yet</span>
             </div>
           )}
           <div className="hero-side">
             <p className="eyebrow">ISC · HES-SO Valais</p>
-            <h1>Games made by ISC students</h1>
+            <h1>Web apps by ISC students</h1>
             <p>
-              Every game here was built with FunGraphics during the 1st-year course - pulled straight
-              from the students' Git repos, compiled and packaged so you can play them anywhere.
+              Websites and web apps built and hosted by ISC students - open them right here in the
+              store or visit them on their own domain.
             </p>
           </div>
         </div>
@@ -62,40 +55,29 @@ export default function Store() {
 
       <section className="section">
         <div className="container">
-          <h2 className="section-title">Browse the library</h2>
+          <h2 className="section-title">Browse web apps</h2>
 
           <div className="store-toolbar">
             <input
               className="input"
               type="search"
-              placeholder="Search games…"
+              placeholder="Search web apps…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
             <select className="input" style={{ maxWidth: '11rem' }} value={sort} onChange={(e) => setSort(e.target.value)}>
               <option value="">Featured first</option>
               <option value="new">Newest</option>
-              <option value="popular">Most downloaded</option>
               <option value="title">A → Z</option>
             </select>
-            {tags.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={`tag-chip${tag === t ? ' active' : ''}`}
-                onClick={() => setTag(tag === t ? '' : t)}
-              >
-                {t}
-              </button>
-            ))}
           </div>
 
           {error && <p className="notice">{error}</p>}
-          {!games && !error && <p>Loading the library…</p>}
-          {games?.length === 0 && <p>No games match - try clearing the filters.</p>}
+          {!apps && !error && <p>Loading web apps…</p>}
+          {apps?.length === 0 && <p>No web apps match - try clearing the search.</p>}
 
           <div className="capsule-grid">
-            {games?.map((g) => <GameCard key={g.slug} game={g} />)}
+            {apps?.map((a) => <GameCard key={a.slug} game={a} />)}
           </div>
         </div>
       </section>

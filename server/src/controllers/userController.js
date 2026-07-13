@@ -34,7 +34,7 @@ async function gamesMadeBy(user) {
   return Game.find({
     published: true,
     $or: [{ owner: user._id }, { collaborators: user._id }, { authors: { $in: names } }],
-  }).sort({ builtAt: -1 });
+  }).sort({ builtAt: -1, createdAt: -1 }); // web entries have no builtAt
 }
 
 /* ---------------------------------------------------------------- profile -- */
@@ -45,13 +45,16 @@ export async function getProfile(req, res, next) {
     const user = await findByUsername(req.params.username);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const [libraryEntries, reviewCount, friendIds, gamesMade, recentReviews] = await Promise.all([
+    const [libraryEntries, reviewCount, friendIds, allMade, recentReviews] = await Promise.all([
       LibraryEntry.find({ user: user._id }).sort({ lastPlayedAt: -1 }).populate('game'),
       Review.countDocuments({ user: user._id }),
       friendIdsOf(user._id),
       gamesMadeBy(user),
       Review.find({ user: user._id }).sort({ createdAt: -1 }).limit(5).populate('game', 'slug title media version'),
     ]);
+
+    const gamesMade = allMade.filter((g) => g.sourceType !== 'web');
+    const webAppsMade = allMade.filter((g) => g.sourceType === 'web');
 
     const hoursPlayed = libraryEntries.reduce((sum, e) => sum + (e.secondsPlayed ?? 0), 0) / 3600;
     const recentGames = libraryEntries
@@ -90,11 +93,13 @@ export async function getProfile(req, res, next) {
         gamesOwned: libraryEntries.length,
         hoursPlayed: Math.round(hoursPlayed * 10) / 10,
         gamesMade: gamesMade.length,
+        webAppsMade: webAppsMade.length,
         friends: friendIds.length,
         reviews: reviewCount,
       },
       showcases: user.showcases,
       gamesMade: gamesMade.map((g) => g.toStore()),
+      webAppsMade: webAppsMade.map((g) => g.toStore()),
       recentGames,
       recentReviews: recentReviews
         .filter((r) => r.game)
