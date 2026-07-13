@@ -1,7 +1,7 @@
 {
   "name": "isc-steam-desktop",
   "productName": "ISCSteam",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "private": true,
   "description": "ISC Steam desktop client - games by ISC students",
   "main": "main.js",

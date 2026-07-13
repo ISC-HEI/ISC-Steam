@@ -26,14 +26,14 @@ async function findByUsername(username) {
   return User.findOne({ username: String(username).toLowerCase() });
 }
 
-/** Games where the user is the publisher or is listed as an author. */
+/** Games where the user is the publisher, a co-owner, or is listed as an author. */
 async function gamesMadeBy(user) {
   const names = [user.username, user.displayName].filter(Boolean).map(
     (n) => new RegExp(`^${escapeRegExp(n)}$`, 'i'),
   );
   return Game.find({
     published: true,
-    $or: [{ owner: user._id }, { authors: { $in: names } }],
+    $or: [{ owner: user._id }, { collaborators: user._id }, { authors: { $in: names } }],
   }).sort({ builtAt: -1 });
 }
 

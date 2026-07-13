@@ -301,6 +301,25 @@ async function buildGame(gameId) {
       }
     }
 
+    // Honor IntelliJ classpath roots: every <sourceFolder> in the .iml (both source
+    // roots and type="java-resource" roots) is on the classpath at dev time, so a
+    // resource must be reachable relative to EACH root. e.g. with roots "src" and
+    // "src/res", src/res/original/x.png must load as BOTH "/res/original/x.png" and
+    // "/original/x.png". We bundle each resource file relative to every root that
+    // contains it (without overwriting earlier entries).
+    for (const root of await readIdeaSourceRoots(repoDir)) {
+      const absRoot = path.join(repoDir, root);
+      if (!(await directoryExists(absRoot))) continue;
+      const files = [];
+      await collect(absRoot, (f) => isResourceFile(repoDir, f), files);
+      for (const f of files) {
+        const entryName = path.relative(absRoot, f).replaceAll('\\', '/');
+        if (put(entryName, await readFile(f), { overwrite: false })) {
+          resourceEntries.push({ file: f, entryName });
+        }
+      }
+    }
+
     log.add(`Bundled ${resourceEntries.length} resource file(s)`);
 
     const jarName = `${safeFileName(game.slug)}.jar`;
@@ -709,6 +728,36 @@ async function resolveMainClass(mainClass, scalaFiles, log) {
 
   log.add(`Warning: could not resolve package for mainClass ${mainClass}; using it as-is`);
   return mainClass;
+}
+
+// Read IntelliJ module classpath roots from any *.iml (repo root or .idea/).
+// Both plain source roots and type="java-resource" roots end up on the runtime
+// classpath, so resources must be bundled relative to each. Returns repo-relative
+// directory paths (e.g. ["src", "src/res"]).
+async function readIdeaSourceRoots(repoDir) {
+  const roots = new Set();
+  const imlFiles = [];
+
+  for (const dir of [repoDir, path.join(repoDir, '.idea')]) {
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      if (entry.isFile() && entry.name.toLowerCase().endsWith('.iml')) {
+        imlFiles.push(path.join(dir, entry.name));
+      }
+    }
+  }
+
+  const re = /<sourceFolder\s+[^>]*url="file:\/\/\$MODULE_DIR\$\/([^"]*)"/g;
+  for (const iml of imlFiles) {
+    const xml = await readFile(iml, 'utf8').catch(() => '');
+    let match;
+    while ((match = re.exec(xml)) !== null) {
+      const rel = match[1].replaceAll('\\', '/').replace(/^\/+|\/+$/g, '');
+      if (rel && !isGeneratedOrDependencyDir(rel)) roots.add(rel);
+    }
+  }
+
+  return [...roots];
 }
 
 async function resolveResourceDirs(repoDir, manifestResources, sourceDirs) {

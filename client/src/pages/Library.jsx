@@ -114,6 +114,14 @@ export default function Library() {
           {entries.map(({ game, secondsPlayed }) => {
             const isInstalled = !!installed[game.slug];
             const updateAvailable = isInstalled && installed[game.slug].version !== game.version;
+            // Same version but the package was rebuilt after we installed it:
+            // reinstalling may fix bugs.
+            const rebuiltSinceInstall =
+              isInstalled &&
+              !updateAvailable &&
+              game.builtAt &&
+              installed[game.slug].installedAt &&
+              new Date(game.builtAt) > new Date(installed[game.slug].installedAt);
             const isPlaying = playing?.slug === game.slug;
             return (
               <article key={game.slug} className="library-card">
@@ -123,7 +131,17 @@ export default function Library() {
                     : <div className="library-cover-fallback">{game.title}</div>}
                 </Link>
                 <div className="library-card-body">
-                  <strong>{game.title}</strong>
+                  <strong>
+                    {game.title}
+                    {rebuiltSinceInstall && (
+                      <span
+                        className="library-rebuilt-info"
+                        title="This game was rebuilt since you installed it. Reinstalling may fix bugs."
+                      >
+                        i
+                      </span>
+                    )}
+                  </strong>
                   <span className="library-playtime">{formatPlaytime(secondsPlayed)}</span>
 
                   <div className="library-actions">
@@ -141,6 +159,11 @@ export default function Library() {
                           {updateAvailable && (
                             <button type="button" className="btn btn-secondary" onClick={() => install(game)} disabled={busy === game.slug}>
                               {busy === game.slug ? 'Updating…' : 'Update'}
+                            </button>
+                          )}
+                          {rebuiltSinceInstall && (
+                            <button type="button" className="btn btn-secondary" onClick={() => install(game)} disabled={busy === game.slug || isPlaying}>
+                              {busy === game.slug ? 'Reinstalling…' : 'Reinstall'}
                             </button>
                           )}
                           <button type="button" className="btn btn-ghost" onClick={() => bridge.openFolder(game.slug)}>

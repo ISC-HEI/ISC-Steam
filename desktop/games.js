@@ -77,7 +77,16 @@ async function listInstalled() {
   for (const e of entries) {
     if (!e.isDirectory() || !SLUG_RE.test(e.name)) continue;
     const meta = await readMeta(e.name);
-    if (meta) out[e.name] = { version: meta.version, title: meta.title };
+    if (!meta) continue;
+    // installedAt is stored in meta since v2; fall back to the meta file's
+    // mtime for games installed before that (the file is written on install).
+    let installedAt = meta.installedAt ?? null;
+    if (!installedAt) {
+      try {
+        installedAt = (await fsp.stat(path.join(root, e.name, META_FILE))).mtime.toISOString();
+      } catch { /* leave null */ }
+    }
+    out[e.name] = { version: meta.version, title: meta.title, installedAt };
   }
   return out;
 }
@@ -136,7 +145,14 @@ async function install(appUrl, game, token) {
   await fsp.writeFile(
     path.join(dest, META_FILE),
     JSON.stringify(
-      { slug: game.slug, title: game.title, version: game.version, coverUrl: game.coverUrl ?? null, launcher },
+      {
+        slug: game.slug,
+        title: game.title,
+        version: game.version,
+        coverUrl: game.coverUrl ?? null,
+        launcher,
+        installedAt: new Date().toISOString(),
+      },
       null,
       2,
     ),
