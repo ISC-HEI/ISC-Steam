@@ -16,6 +16,10 @@ ipcMain.handle('isc:install', (e, game, token) => games.install(APP_URL, game, t
 ipcMain.handle('isc:uninstall', (e, slug) => games.uninstall(slug));
 ipcMain.handle('isc:play', (e, slug) => games.play(APP_URL, slug));
 ipcMain.handle('isc:openFolder', (e, slug) => games.openFolder(slug));
+// unread-message badge on the taskbar icon (overlay on Windows, dock on macOS)
+ipcMain.on('isc:badge', (e, count) => {
+  app.setBadgeCount(Math.max(0, Number(count) || 0));
+});
 
 function createWindow() {
   const win = new BrowserWindow({

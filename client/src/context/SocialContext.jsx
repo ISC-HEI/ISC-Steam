@@ -128,8 +128,8 @@ export function SocialProvider({ children }) {
         } else {
           setUnread((u) => ({ ...u, [m.from]: (u[m.from] ?? 0) + 1 }));
         }
-        // notify unless the chat is open and the window is focused
-        if (activeChatRef.current !== other || !document.hasFocus()) notifyMessage(m);
+        // native toast only when the app is minimized / in a background tab
+        if (document.hidden) notifyMessage(m);
       }
     });
 
@@ -221,6 +221,45 @@ export function SocialProvider({ children }) {
 
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
   const onlineCount = friends.filter((f) => f.status?.state !== 'offline').length;
+
+  // unread badge: favicon dot + title count in the browser, taskbar badge on desktop
+  useEffect(() => {
+    const link = document.querySelector('link[rel="icon"]');
+    if (link && !link.dataset.originalHref) {
+      link.dataset.originalHref = link.href;
+      link.dataset.originalType = link.type ?? '';
+    }
+    document.title = document.title.replace(/^\(\d+\+?\)\s*/, '');
+    if (totalUnread > 0) document.title = `(${totalUnread > 99 ? '99+' : totalUnread}) ${document.title}`;
+
+    window.iscSteam?.setBadge?.(totalUnread);
+
+    if (!link) return;
+    if (totalUnread === 0) {
+      link.href = link.dataset.originalHref;
+      link.type = link.dataset.originalType;
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, 64, 64);
+      ctx.beginPath();
+      ctx.arc(46, 18, 16, 0, 2 * Math.PI);
+      ctx.fillStyle = '#e5484d';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 22px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(totalUnread > 9 ? '9+' : String(totalUnread), 46, 19);
+      link.type = 'image/png';
+      link.href = c.toDataURL('image/png');
+    };
+    img.src = link.dataset.originalHref;
+  }, [totalUnread]);
 
   return (
     <SocialContext.Provider

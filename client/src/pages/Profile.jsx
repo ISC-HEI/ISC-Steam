@@ -9,6 +9,7 @@ import ProfileHeader from '../components/profile/ProfileHeader.jsx';
 import ShowcaseCard from '../components/profile/ShowcaseCard.jsx';
 import Comments from '../components/profile/Comments.jsx';
 import { StatCard, SidebarSection, ActivityCard, FriendCard } from '../components/profile/ProfileBits.jsx';
+import BannerCrop from '../components/profile/BannerCrop.jsx';
 
 const SHOWCASE_OPTIONS = [
   ['favorite-game', 'Favorite game'],
@@ -25,6 +26,7 @@ function EditPanel({ profile, onClose, onSaved }) {
   const [showcases, setShowcases] = useState(profile.showcases ?? []);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bannerFile, setBannerFile] = useState(null); // pending file for the crop tool
 
   async function uploadImage(kind, file) {
     if (!file) return;
@@ -83,7 +85,14 @@ function EditPanel({ profile, onClose, onSaved }) {
         </label>
         <label>
           Banner
-          <input type="file" accept="image/*" onChange={(e) => uploadImage('banner', e.target.files[0])} />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files[0]) setBannerFile(e.target.files[0]);
+              e.target.value = ''; // allow re-picking the same file
+            }}
+          />
         </label>
         <label>
           Background
@@ -148,6 +157,17 @@ function EditPanel({ profile, onClose, onSaved }) {
         <button type="button" className="btn btn-primary" onClick={save} disabled={busy}>Save</button>
         <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
       </div>
+
+      {bannerFile && (
+        <BannerCrop
+          file={bannerFile}
+          onCancel={() => setBannerFile(null)}
+          onApply={(cropped) => {
+            setBannerFile(null);
+            uploadImage('banner', cropped);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -229,11 +249,9 @@ export default function Profile() {
 
         <div className="profile-body">
           {backgroundUrl && (
-            <div
-              className="profile-page-bg"
-              style={{ backgroundImage: `url(${backgroundUrl})` }}
-              aria-hidden="true"
-            />
+            <div className="profile-page-bg" aria-hidden="true">
+              <img src={backgroundUrl} alt="" />
+            </div>
           )}
           <div className="container">
           <div className="profile-columns">

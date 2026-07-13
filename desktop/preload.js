@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld('iscSteam', {
   play: (slug) => ipcRenderer.invoke('isc:play', slug),
   openFolder: (slug) => ipcRenderer.invoke('isc:openFolder', slug),
 
+  /** Unread count shown on the taskbar icon (0 clears it). */
+  setBadge: (count) => ipcRenderer.send('isc:badge', count),
+
   /** cb receives { type: 'started'|'exited', slug, title, seconds? }. Returns unsubscribe. */
   onGameEvent: (cb) => {
     const listener = (_event, data) => cb(data);

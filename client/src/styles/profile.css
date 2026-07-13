@@ -116,13 +116,20 @@
 .profile-page-bg {
   position: absolute;
   inset: 0;
-  background-size: cover;
-  background-position: center top;
+  overflow: hidden; /* never taller than the content */
   pointer-events: none;
-  /* alpha mask: fades in below the stats and out again at the bottom, so it
-     blends into the page background in both light and dark mode */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 160px, #000 calc(100% - 240px), transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 160px, #000 calc(100% - 240px), transparent 100%);
+}
+/* The image keeps its own aspect ratio, pinned to the top: it spans the full
+   width but is NOT stretched to fill the page height. Scroll past it and the
+   normal page background (dark or light) takes over. The alpha mask fades it
+   in below the stats and out along its own bottom edge, so the blend into
+   black/white is smooth in both themes. */
+.profile-page-bg img {
+  display: block;
+  width: 100%;
+  height: auto;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 160px, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 160px, #000 72%, transparent 100%);
 }
 
 /* ---- layout ---- */
@@ -317,6 +324,65 @@
 }
 .comment-like.liked { color: var(--isc-rose); }
 .comment-like:hover, .comment-action:hover { color: var(--isc-ink); }
+
+/* ---- banner crop tool ---- */
+.banner-crop-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+}
+.banner-crop {
+  width: min(920px, 100%);
+  background: var(--isc-paper);
+  border: 1px solid var(--isc-line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.banner-crop h3 { margin: 0 0 var(--space-1); }
+.banner-crop-hint { margin: 0 0 var(--space-3); color: var(--isc-muted); font-size: var(--text-sm); }
+.banner-crop-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 6 / 1; /* keep in sync with ASPECT in BannerCrop.jsx */
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--isc-paper-dim);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.banner-crop-frame:active { cursor: grabbing; }
+.banner-crop-frame img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  pointer-events: none;
+}
+/* previews the hero's readability scrim + bottom fade */
+.banner-crop-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(10, 12, 16, 0.35), rgba(10, 12, 16, 0.75));
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+}
+.banner-crop-zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  font-size: var(--text-sm);
+}
+.banner-crop-zoom input { flex: 1; }
+.banner-crop-buttons { display: flex; gap: var(--space-2); }
 
 /* ---- edit panel ---- */
 .profile-edit {
